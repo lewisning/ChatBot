@@ -26,8 +26,8 @@
 
 
 .chat-popup {
-  width: 300px;
-  height: 400px;
+  width: 350px;
+  height: 500px;
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   border-radius: 12px;
@@ -189,4 +189,44 @@
 
 .avatar-pick.selected {
   border-color: #0a66c2;
+}
+
+
+.chat-message-row {
+  display: flex;
+  margin: 6px 12px;
+}
+
+.chat-message-row.user {
+  justify-content: flex-end;
+}
+
+.chat-message-row.bot {
+  justify-content: flex-start;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  position: relative;
+  background: #e0f0ff;
+  color: #000;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.chat-message-row.user .chat-bubble {
+  background: #daf4d7;
+  align-self: flex-end;
+}
+
+.chat-text {
+  margin-bottom: 4px;
+}
+
+.chat-time {
+  font-size: 11px;
+  text-align: right;
+  color: #666;
 }
