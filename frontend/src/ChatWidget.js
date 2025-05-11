@@ -7,17 +7,21 @@ import avatar3 from './assets/avatars/avatar3.png';
 import avatar4 from './assets/avatars/avatar4.png';
 
 function ChatWidget() {
-  const [isOpen, setIsOpen] = useState(false);
+  // 1. Initialization
+  const bottomRef = React.useRef(null);
+  const [isOpen, setIsOpen] = useState(false);  // Chat window open status
 
+  // Default user name and avatar
   const [userInfo, setUserInfo] = useState(() => {
     const saved = localStorage.getItem('userInfo');
     return saved ? JSON.parse(saved) : { name: 'SMARTIE', avatar: 'chat-icon.png' };
   });
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [showAvatarPopup, setShowAvatarPopup] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);  // Editable name
+  const [showAvatarPopup, setShowAvatarPopup] = useState(false);  // Editable avatar
   const [message, setMessage] = useState('');
 
+  //
   const [chatLog, setChatLog] = useState(() => {
     const saved = localStorage.getItem('chatLog');
     return saved ? JSON.parse(saved) : [];
@@ -32,6 +36,13 @@ function ChatWidget() {
     }
     return 0;
   });
+
+  // Listen chatLog status
+  useEffect(() => {
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatLog]);
 
   useEffect(() => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
@@ -71,7 +82,9 @@ function ChatWidget() {
         text: `Hi I'm ${userInfo.name}! Your personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
-      setChatLog([welcome]);
+      if (isOpen && chatLog.length === 0) {
+        setChatLog([welcome]);
+      }
     }
   }, [isOpen, userInfo.name, chatLog]);
 
@@ -93,8 +106,9 @@ function ChatWidget() {
     setCountdown(60);
 
     try {
-      const res = await axios.post('http://localhost:8000/chat/', { message });
-      const botMessage = { sender: 'bot', text: res.data.reply, time: now };
+      const res = await axios.post('http://localhost:8000/rag_ask/', { question: message, name: userInfo.name });
+      const botMessage = { sender: 'bot', text: res.data.answer, time: now };
+
       setChatLog(prev => {
         const newLog = [...prev];
         newLog[newLog.length - 1] = botMessage;
@@ -102,6 +116,12 @@ function ChatWidget() {
       });
     } catch (err) {
       console.error(err);
+      const errorMessage = { sender: 'bot', text: 'Sorry, something went wrong.', time: now };
+      setChatLog(prev => {
+        const newLog = [...prev];
+        newLog[newLog.length - 1] = errorMessage;
+        return newLog;
+      });
     }
   };
 
@@ -154,6 +174,7 @@ function ChatWidget() {
                 </div>
               </div>
             ))}
+            <div ref={bottomRef} />
           </div>
 
           <div className="chat-footer">
