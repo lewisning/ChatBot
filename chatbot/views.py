@@ -25,8 +25,8 @@ def chat_view(request):
         response = openai.ChatCompletion.create(
             engine=deployment_name,
             messages=[
-                {"role": "system", "content": "You are a helpful assistant, especially for Nestle and all products "
-                                              "on it's website, https://www.madewithnestle.ca/."},
+                {"role": "system", "content": "You are a helpful assistant that helps users with their questions about MadeWithNestle products and services"
+                                              " on it's website, https://www.madewithnestle.ca/."},
                 {"role": "user", "content": user_message}
             ],
             temperature=0.7,
