@@ -5,6 +5,10 @@ import faiss
 import openai
 from dotenv import load_dotenv
 
+"""
+Individually test Vector search function
+"""
+
 load_dotenv()
 
 # Azure OpenAI Configuration
@@ -34,14 +38,14 @@ def embed_query(query):
     return np.array(response["data"][0]["embedding"], dtype="float32")
 
 # Vector searching
-def search_similar_chunks(query, top_k=3):
+def search_similar_chunks(query, top_k=10, distance_threshold=1.2):
     query_vec = embed_query(query)
     D, I = index.search(np.array([query_vec]), top_k)
 
     results = []
-    for i in I[0]:
-        if i < len(metadata):
-            results.append(metadata[i])
+    for dist, idx in zip(D[0], I[0]):
+        if idx < len(metadata) and dist < distance_threshold:
+            results.append(metadata[idx])
     return results
 
 if __name__ == "__main__":

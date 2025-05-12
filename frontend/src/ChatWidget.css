@@ -5,7 +5,7 @@
 }
 
 .chat-toggle-button {
-  all: unset; /* 清除所有默认样式 */
+  all: unset;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -24,10 +24,73 @@
   display: block;
 }
 
+.chat-message-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* bot 左对齐；用户你可设置 flex-end */
+  margin-bottom: 12px;
+}
+
+.chat-message-block.user {
+  align-items: flex-end;
+}
+
+.chat-references-row {
+  margin-top: 4px;
+  /*margin-left: 8px; !* 缩进一点点避免太贴边 *!*/
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #333;
+  flex-wrap: wrap;
+}
+
+.ref-button {
+  padding: 2px 6px;
+  background-color: #dbe4ff;
+  border-radius: 4px;
+  font-weight: bold;
+  text-decoration: none;
+  color: #0033cc;
+  font-family: monospace;
+}
+
+.chat-bubble {
+  background-color: #e9f1ff; /* 默认 bot 气泡颜色 */
+  border-radius: 10px;
+  padding: 10px 12px;
+  max-width: 80%;
+  color: #000;
+}
+
+.chat-message-block.user .chat-bubble {
+  background-color: #dcf8c6; /* ✅ 用户气泡颜色（浅绿色，类 WhatsApp） */
+  align-self: flex-end;
+}
+
+.chat-message-block.bot .chat-bubble {
+  background-color: #e9f1ff; /* bot 保持浅蓝色 */
+  align-self: flex-start;
+}
+
+
+.chat-text a {
+  text-decoration: underline;
+  color: #0047cc;
+  font-weight: bold;
+}
+
+.chat-text strong {
+  font-weight: bold;
+}
+.chat-text ul, .chat-text ol {
+  padding-left: 20px;
+}
 
 .chat-popup {
-  width: 350px;
-  height: 500px;
+  width: 400px;
+  height: 700px;
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   border-radius: 12px;
@@ -39,6 +102,28 @@
   overflow: hidden;
   z-index: 1000;
 }
+
+.chat-references {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #333;
+}
+
+.ref-button {
+  display: inline-block;
+  margin: 0 5px;
+  padding: 2px 6px;
+  background-color: #dde8ff;
+  color: #003399;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+.ref-button:hover {
+  background-color: #c4d7ff;
+}
+
 
 .chat-header {
   background: #002c71;

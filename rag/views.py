@@ -15,8 +15,9 @@ def rag_ask_view(request):
 
         try:
             answer = ask_with_context(question, chatbot_name=name)
-            return JsonResponse({"answer": answer})
+            return JsonResponse(answer)
         except Exception as e:
+            print("[ERROR]", e)
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid method"}, status=405)

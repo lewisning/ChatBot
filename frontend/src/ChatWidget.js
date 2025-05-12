@@ -5,6 +5,7 @@ import avatar1 from './assets/avatars/avatar1.png';
 import avatar2 from './assets/avatars/avatar2.png';
 import avatar3 from './assets/avatars/avatar3.png';
 import avatar4 from './assets/avatars/avatar4.png';
+import ReactMarkdown from 'react-markdown';
 
 function ChatWidget() {
   // 1. Initialization
@@ -21,21 +22,30 @@ function ChatWidget() {
   const [showAvatarPopup, setShowAvatarPopup] = useState(false);  // Editable avatar
   const [message, setMessage] = useState('');
 
-  //
   const [chatLog, setChatLog] = useState(() => {
     const saved = localStorage.getItem('chatLog');
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [countdown, setCountdown] = useState(() => {
-    const saved = localStorage.getItem('countdownData');
-    if (saved) {
-      const { expiresAt } = JSON.parse(saved);
-      const remaining = Math.floor((new Date(expiresAt) - new Date()) / 1000);
-      return remaining > 0 ? remaining : 0;
-    }
-    return 0;
-  });
+  // Initialize countdown for free tier Azure quota limitation
+  // const [countdown, setCountdown] = useState(() => {
+  //   const saved = localStorage.getItem('countdownData');
+  //   if (saved) {
+  //     const { expiresAt } = JSON.parse(saved);
+  //     const remaining = Math.floor((new Date(expiresAt) - new Date()) / 1000);
+  //     return remaining > 0 ? remaining : 0;
+  //   }
+  //   return 0;
+  // });
+
+  // Remove all messages history when refresh the web, but keep the name and avatar
+  useEffect(() => {
+    localStorage.removeItem('chatLog');
+    localStorage.removeItem('userInfo');
+    setChatLog([]);
+    // setUserInfo({ name: 'SMARTIE', avatar: 'chat-icon.png' });
+  }, []);
+
 
   // Listen chatLog status
   useEffect(() => {
@@ -52,28 +62,28 @@ function ChatWidget() {
     localStorage.setItem('chatLog', JSON.stringify(chatLog));
   }, [chatLog]);
 
-  useEffect(() => {
-    if (countdown > 0) {
-      const expiresAt = new Date(new Date().getTime() + countdown * 1000);
-      localStorage.setItem('countdownData', JSON.stringify({ expiresAt }));
-    } else {
-      localStorage.removeItem('countdownData');
-    }
-  }, [countdown]);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [countdown]);
+  // useEffect(() => {
+  //   if (countdown > 0) {
+  //     const expiresAt = new Date(new Date().getTime() + countdown * 1000);
+  //     localStorage.setItem('countdownData', JSON.stringify({ expiresAt }));
+  //   } else {
+  //     localStorage.removeItem('countdownData');
+  //   }
+  // }, [countdown]);
+  //
+  // useEffect(() => {
+  //   if (countdown <= 0) return;
+  //   const timer = setInterval(() => {
+  //     setCountdown(prev => {
+  //       if (prev <= 1) {
+  //         clearInterval(timer);
+  //         return 0;
+  //       }
+  //       return prev - 1;
+  //     });
+  //   }, 1000);
+  //   return () => clearInterval(timer);
+  // }, [countdown]);
 
   useEffect(() => {
     if (isOpen) {
@@ -93,7 +103,7 @@ function ChatWidget() {
   };
 
   const sendMessage = async () => {
-    if (!message.trim() || countdown > 0) return;
+    if (!message.trim()) return;
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage = { sender: 'user', text: message, time: now };
@@ -103,11 +113,15 @@ function ChatWidget() {
     setChatLog(prev => [...prev, thinkingMessage]);
 
     setMessage('');
-    setCountdown(60);
 
     try {
       const res = await axios.post('http://localhost:8000/rag_ask/', { question: message, name: userInfo.name });
-      const botMessage = { sender: 'bot', text: res.data.answer, time: now };
+      const botMessage = {
+        sender: 'bot',
+        text: res.data.answer,
+        time: now,
+        refs: res.data.references || []
+      };
 
       setChatLog(prev => {
         const newLog = [...prev];
@@ -167,11 +181,32 @@ function ChatWidget() {
 
           <div className="chat-body">
             {chatLog.map((msg, idx) => (
-              <div key={idx} className={`chat-message-row ${msg.sender}`}>
-                <div className="chat-bubble">
-                  <div className="chat-text">{msg.text}</div>
-                  <div className="chat-time">{msg.time}</div>
+              <div key={idx} className={`chat-message-block ${msg.sender}`}>
+                <div className="chat-message-row">
+                    <div className="chat-bubble">
+                      <div className="chat-text">
+                        <ReactMarkdown>{msg.text}</ReactMarkdown>
+                      </div>
+                      <div className="chat-time">{msg.time}</div>
+                    </div>
                 </div>
+                {/*Add clickable reference number*/}
+                {msg.refs && msg.refs.length > 0 && (
+                  <div className="chat-references">
+                    <strong>References:</strong>
+                    {msg.refs.map(ref => (
+                      <a
+                        key={ref.number}
+                        href={ref.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ref-button"
+                      >
+                        [{ref.number}]
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             <div ref={bottomRef} />
@@ -181,14 +216,15 @@ function ChatWidget() {
             <input
               type="text"
               value={message}
-              disabled={countdown > 0}
+              // disabled={countdown > 0}
               onChange={e => setMessage(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') sendMessage();
               }}
-              placeholder={countdown > 0 ? `Please wait... ${countdown}s` : 'Ask me anything...'}
+              placeholder="Ask me anything..."
+              // placeholder={countdown > 0 ? `Please wait... ${countdown}s` : 'Ask me anything...'}
             />
-            <button onClick={sendMessage} disabled={countdown > 0}>➤</button>
+            <button onClick={sendMessage}>➤</button>
           </div>
         </div>
       )}

@@ -1,4 +1,3 @@
-# rag/rag_answer.py
 import os
 import json
 import openai
@@ -30,22 +29,41 @@ def embed_query(query):
     )
     return np.array(response["data"][0]["embedding"], dtype="float32")
 
-def search_context(query, top_k=5):
+def search_context(query, top_k=5, distance_threshold=1.5):
     query_vec = embed_query(query)
     D, I = index.search(np.array([query_vec]), top_k)
+
     contexts = []
-    for i in I[0]:
-        if i < len(metadata):
-            contexts.append(metadata[i]["text"])
-    return "\n---\n".join(contexts)
+    references = []
+
+    for dist, i in zip(D[0], I[0]):
+        if i < len(metadata) and dist < distance_threshold:
+            meta = metadata[i]
+            contexts.append(meta["text"])
+            references.append({
+                "url": meta["url"],
+                "title": meta.get("title"),
+                "number": len(references) + 1
+            })
+
+    return "\n---\n".join(contexts), references
+
 
 def ask_with_context(question, chatbot_name):
-    context = search_context(question)
+    context, references = search_context(question)
+
     prompt = f"""
+                You are a helpful assistant named {chatbot_name}, helping users discover Nestlé products.
                 Answer the question based only on the following content.
                 If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
-                Be concise, factual, and in English.
-                Do not mention the source or say 'based on the context'.
+                Be concise, factual, and in English. Do not say 'based on the context'.
+                Only use content that is clearly relevant to the question.
+                Ignore irrelevant products or content even if they are nearby in the context.
+
+                Please format your answer based on the type:
+                1. If the answer contains **product recommendations**, show each product as a markdown hyperlink like [**Product Name**](https://example.com). Do not include any [1], [2] citations, and do not show a references section.
+                2. If the answer contains **factual or informational content**, insert markdown hyperlinks directly inside the text, and add a [1], [2] citation number after each link **inside the text**. Do not include a "References" section at the end of the message.
+                Use markdown formatting for links and bulleted lists where appropriate.
                 
                 Context:
                 {context}
@@ -61,4 +79,25 @@ def ask_with_context(question, chatbot_name):
         temperature=0.3,
         max_tokens=300
     )
-    return response["choices"][0]["message"]["content"].strip()
+
+    # Format response with references
+    base_answer = response["choices"][0]["message"]["content"].strip()
+
+    # Reduce duplicate references
+    used_titles = set()
+    for ref in references:
+        product = ref["title"].strip()
+        url = ref["url"]
+        number = ref["number"]
+
+        if product in base_answer and product not in used_titles:
+            base_answer = base_answer.replace(
+                product,
+                f"[{product}]({url})[{number}]"
+            )
+            used_titles.add(product)
+
+    return {
+        "answer": base_answer,
+        "references": references
+    }

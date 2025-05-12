@@ -22,7 +22,7 @@ FAISS_INDEX = "rag/vector_store.faiss"
 METADATA_FILE = "rag/metadata.json"
 
 # Split data into chunks
-def split_text(text, max_tokens=500):
+def split_text(text, max_tokens=300):
     encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
     tokens = encoding.encode(text)
     chunks = []

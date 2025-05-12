@@ -70,7 +70,7 @@ def scrape_site(start_url):
     data_file = "rag/data.json"
     visited = set()
     data = []
-    MAX_PAGES = 20
+    MAX_PAGES = 10
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False, args=["--disable-blink-features=AutomationControlled"])
