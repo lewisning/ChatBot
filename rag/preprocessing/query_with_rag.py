@@ -18,8 +18,8 @@ DEPLOYMENT_GPT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 DEPLOYMENT_EMBED = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
 # Context loading
-INDEX_PATH = "rag/vector_store.faiss"
-META_PATH = "rag/metadata.json"
+INDEX_PATH = "rag/faiss_index.index"
+META_PATH = "rag/faiss_metadata.json"
 
 # Loading FAISS index and metadata
 index = faiss.read_index(INDEX_PATH)
@@ -29,7 +29,7 @@ with open(META_PATH, "r", encoding="utf-8") as f:
 def embed_query(query):
     response = openai.Embedding.create(
         input=[query],
-        engine=DEPLOYMENT_EMBED
+        deployment_id=DEPLOYMENT_EMBED
     )
     return np.array(response["data"][0]["embedding"], dtype="float32")
 
@@ -40,18 +40,20 @@ def search_context(query, top_k=5):
     for i in I[0]:
         if i < len(metadata):
             m = metadata[i]
-            # Ensure multiple chunks with same product information connect logically
-            formatted = f"[{m['title']}] (chunk {m['chunk_index']})\n{m['text']}"
+            meta = m["metadata"]
+            formatted = f"[{meta['product_name']}] - {meta.get('chunk_type', '')}\n{m['content']}"
             contexts.append(formatted)
     return "\n---\n".join(contexts)
 
-def ask_with_context(question):
+def ask_with_context(question, chatbot_name):
     context = search_context(question)
 
     prompt = f"""
                 Answer the question based only on the following content.
+                If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
                 Be concise, factual, and in English.
                 Do not mention the source or say 'based on the context'.
+                If you don't know the answer, say "I don't know" or "I can't help with that".
                             
                 Context:
                 {context}
@@ -63,7 +65,7 @@ def ask_with_context(question):
              """
 
     response = openai.ChatCompletion.create(
-        engine=DEPLOYMENT_GPT,
+        deployment_id=DEPLOYMENT_GPT,
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
         max_tokens=300

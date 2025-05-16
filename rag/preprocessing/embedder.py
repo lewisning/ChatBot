@@ -1,84 +1,51 @@
-import os
 import json
+import os
+from dotenv import load_dotenv
 import openai
 import faiss
-import tiktoken
-from dotenv import load_dotenv
 import numpy as np
+from tqdm import tqdm
 
-
+# ========== Configure OpenAI Key ==========
 load_dotenv()
-
-# Azure OpenAI Configuration
 openai.api_type = "azure"
 openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
-# Data files Path
-DATA_FILE = "rag/data.json"
-FAISS_INDEX = "rag/vector_store.faiss"
-METADATA_FILE = "rag/metadata.json"
+# ========== Load Chunk data ==========
+with open("rag/chunks.json", "r", encoding="utf-8") as f:
+    chunks = json.load(f)
 
-# Split data into chunks
-def split_text(text, max_tokens=300):
-    encoding = tiktoken.encoding_for_model("text-embedding-ada-002")
-    tokens = encoding.encode(text)
-    chunks = []
-    for i in range(0, len(tokens), max_tokens):
-        chunk_tokens = tokens[i:i+max_tokens]
-        chunk_text = encoding.decode(chunk_tokens)
-        chunks.append(chunk_text)
-    return chunks
+# ========== Extract text and metadata ==========
+texts = [chunk["content"] for chunk in chunks]
 
-# Generate embedding vectors
-def embed_texts(texts):
+# ========== Generate embeddings ==========
+print("Generating embeddings...")
+
+embeddings = []
+batch_size = 50
+for i in tqdm(range(0, len(texts), batch_size)):
+    batch = texts[i:i+batch_size]
     response = openai.Embedding.create(
-        input=texts,
-        engine=DEPLOYMENT
+        deployment_id=DEPLOYMENT,
+        input=batch
     )
-    return [r["embedding"] for r in response["data"]]
+    batch_embeddings = [item["embedding"] for item in response["data"]]
+    embeddings.extend(batch_embeddings)
 
-def main():
-    with open(DATA_FILE, "r", encoding="utf-8") as f:
-        data = json.load(f)
+embeddings = np.array(embeddings).astype("float32")  # FAISS 需要 float32
 
-    texts = []
-    metadatas = []
+# ========== Construct FAISS index ==========
+dim = len(embeddings[0])
+index = faiss.IndexFlatL2(dim)
+index.add(embeddings)
 
-    for entry in data:
-        url = entry["url"]
-        title = entry["title"]
-        base_text = entry["text"]
+# ========== Save FAISS index and related metadata ==========
+faiss.write_index(index, "rag/faiss_index.index")
+with open("rag/faiss_metadata.json", "w", encoding="utf-8") as f:
+    json.dump(chunks, f, ensure_ascii=False, indent=2)
 
-        # Process text
-        chunks = split_text(base_text)
-        for i, chunk in enumerate(chunks):
-            texts.append(chunk)
-            metadatas.append({
-                "url": url,
-                "title": title,
-                "chunk_index": i,
-                "text": chunk
-            })
-
-    print(f"[+] Ready to embed {len(texts)} chunks.")
-
-    # Generate embedding vectors
-    vectors = embed_texts(texts)
-
-    # Create FAISS index
-    dim = len(vectors[0])
-    index = faiss.IndexFlatL2(dim)
-    index.add(np.array(vectors).astype("float32"))
-
-    # Save FAISS index and metadata
-    faiss.write_index(index, FAISS_INDEX)
-    with open(METADATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(metadatas, f, ensure_ascii=False, indent=2)
-
-    print(f"[✔] Embedding successful，saved {len(vectors)} vectors.")
-
-if __name__ == "__main__":
-    main()
+print(f"Done! Embedded {len(chunks)} chunks.")
+print("Saved: faiss_index.index and faiss_metadata.json")

@@ -3,7 +3,6 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .rag_answer import ask_with_context
 
-
 @csrf_exempt
 def rag_ask_view(request):
     if request.method == "POST":

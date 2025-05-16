@@ -19,8 +19,8 @@ openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
 # Load FAISS and metadata
-INDEX_PATH = "rag/vector_store.faiss"
-META_PATH = "rag/metadata.json"
+INDEX_PATH = "rag/faiss_index.index"
+META_PATH = "rag/faiss_metadata.json"
 
 index = faiss.read_index(INDEX_PATH)
 

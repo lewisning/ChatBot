@@ -115,7 +115,7 @@ function ChatWidget() {
     setMessage('');
 
     try {
-      const res = await axios.post('http://localhost:8000/rag_ask/', { question: message, name: userInfo.name });
+      const res = await axios.post('http://localhost:8000/chat/', { question: message, name: userInfo.name });
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -190,23 +190,23 @@ function ChatWidget() {
                       <div className="chat-time">{msg.time}</div>
                     </div>
                 </div>
-                {/*Add clickable reference number*/}
-                {msg.refs && msg.refs.length > 0 && (
-                  <div className="chat-references">
-                    <strong>References:</strong>
-                    {msg.refs.map(ref => (
-                      <a
-                        key={ref.number}
-                        href={ref.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ref-button"
-                      >
-                        [{ref.number}]
-                      </a>
-                    ))}
-                  </div>
-                )}
+                {/*Add clickable reference numbers*/}
+                {/*{msg.refs && msg.refs.length > 0 && (*/}
+                {/*  <div className="chat-references">*/}
+                {/*    <strong>References:</strong>*/}
+                {/*    {msg.refs.map(ref => (*/}
+                {/*      <a*/}
+                {/*        key={ref.number}*/}
+                {/*        href={ref.url}*/}
+                {/*        target="_blank"*/}
+                {/*        rel="noopener noreferrer"*/}
+                {/*        className="ref-button"*/}
+                {/*      >*/}
+                {/*        [{ref.number}]*/}
+                {/*      </a>*/}
+                {/*    ))}*/}
+                {/*  </div>*/}
+                {/*)}*/}
               </div>
             ))}
             <div ref={bottomRef} />
