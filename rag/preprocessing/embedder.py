@@ -16,23 +16,31 @@ DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
 
 # ========== Load Chunk data ==========
 with open("rag/chunks.json", "r", encoding="utf-8") as f:
-    chunks = json.load(f)
+    raw_chunks = json.load(f)
 
-# ========== Extract text and metadata ==========
-texts = [chunk["content"] for chunk in chunks]
+# ========== Add unique chunk_id and extract texts ==========
+chunks = []
+texts = []
+
+for i, chunk in enumerate(raw_chunks):
+    chunk_id = f"chunk_{i}"
+    chunk["chunk_id"] = chunk_id  # 给每个chunk加唯一id
+    chunks.append(chunk)
+    texts.append(chunk["content"])
 
 # ========== Generate embeddings ==========
-print("Generating embeddings...")
+print("🔍 Generating embeddings...")
 
 embeddings = []
 batch_size = 50
 for i in tqdm(range(0, len(texts), batch_size)):
-    batch = texts[i:i+batch_size]
+    batch = texts[i:i + batch_size]
     response = openai.Embedding.create(
         deployment_id=DEPLOYMENT,
         input=batch
     )
-    batch_embeddings = [item["embedding"] for item in response["data"]]
+    # 按照请求顺序排序结果
+    batch_embeddings = [item["embedding"] for item in sorted(response["data"], key=lambda x: x["index"])]
     embeddings.extend(batch_embeddings)
 
 embeddings = np.array(embeddings).astype("float32")  # FAISS 需要 float32
@@ -42,10 +50,10 @@ dim = len(embeddings[0])
 index = faiss.IndexFlatL2(dim)
 index.add(embeddings)
 
-# ========== Save FAISS index and related metadata ==========
+# ========== Save FAISS index and metadata ==========
 faiss.write_index(index, "rag/faiss_index.index")
-with open("rag/faiss_metadata.json", "w", encoding="utf-8") as f:
+with open("rag/metadata.json", "w", encoding="utf-8") as f:
     json.dump(chunks, f, ensure_ascii=False, indent=2)
 
-print(f"Done! Embedded {len(chunks)} chunks.")
-print("Saved: faiss_index.index and faiss_metadata.json")
+print(f"✅ Done! Embedded {len(chunks)} chunks.")
+print("📁 Saved: rag/faiss_index.index and rag/faiss_metadata.json")

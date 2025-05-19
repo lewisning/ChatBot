@@ -22,7 +22,7 @@ class Product:
     spec: str
     description: str
     features: str
-    nutrition: Dict[str, str]
+    nutrition: list
     ingredient: str
     link: str
     image: str
@@ -139,7 +139,7 @@ def extract_structured_content(soup, url, seen):
                                     spec=spec,
                                     description="",
                                     features="",
-                                    nutrition={},
+                                    nutrition=[],
                                     ingredient="",
                                     link=normalize_url(product_link),
                                     image=image,
@@ -249,7 +249,7 @@ def extract_pages_for_brand(page, brand_info):
 
 # Helper function for nutrition information
 def extract_nutrition(soup):
-    nutrition = {}
+    nutrition = []
 
     # Scrape nutrition information from two sections
     rows = soup.select('.primarynutrient .coh-row-inner, .secondarynutrient .coh-row-inner')
@@ -262,11 +262,10 @@ def extract_nutrition(soup):
         # Extract name, amount, and DV (if available)
         name = cells[0].get_text(strip=True)
         amount = cells[1].get_text(strip=True)
-        dv = cells[2].get_text(strip=True) if len(cells) >= 3 else ""
+        dv = cells[2].get_text(strip=True) if len(cells) >= 3 else "Not Provided"
 
         if name and amount:
-            combined = f"{amount} ({dv})" if dv else amount
-            nutrition[name] = combined
+            nutrition.append({"type": name, "amount": amount, "dv": dv})
 
     return nutrition
 
@@ -389,7 +388,7 @@ def save_results(data):
             })
         output.append(brand_dict)
 
-    with open(os.path.join("rag/", "brand_products.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join("rag/brand_products.json"), "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
 
 
