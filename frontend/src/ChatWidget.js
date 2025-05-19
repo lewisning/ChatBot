@@ -120,7 +120,7 @@ function ChatWidget() {
         sender: 'bot',
         text: res.data.answer,
         time: now,
-        refs: res.data.references || []
+        refs: res.data.reference || []
       };
 
       setChatLog(prev => {
@@ -191,22 +191,22 @@ function ChatWidget() {
                     </div>
                 </div>
                 {/*Add clickable reference numbers*/}
-                {/*{msg.refs && msg.refs.length > 0 && (*/}
-                {/*  <div className="chat-references">*/}
-                {/*    <strong>References:</strong>*/}
-                {/*    {msg.refs.map(ref => (*/}
-                {/*      <a*/}
-                {/*        key={ref.number}*/}
-                {/*        href={ref.url}*/}
-                {/*        target="_blank"*/}
-                {/*        rel="noopener noreferrer"*/}
-                {/*        className="ref-button"*/}
-                {/*      >*/}
-                {/*        [{ref.number}]*/}
-                {/*      </a>*/}
-                {/*    ))}*/}
-                {/*  </div>*/}
-                {/*)}*/}
+                {msg.refs && msg.refs.length > 0 && (
+                  <div className="chat-references">
+                    <strong>References:</strong>
+                    {msg.refs.map(ref => (
+                      <a
+                        key={ref.number}
+                        href={ref.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ref-button"
+                      >
+                        [{ref.number}]
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             <div ref={bottomRef} />

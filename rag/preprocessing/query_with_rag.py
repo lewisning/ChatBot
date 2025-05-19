@@ -1,93 +1,117 @@
-import os
-import json
-import openai
-import time
-from openai.error import RateLimitError
-import numpy as np
 import faiss
+import json
+import numpy as np
+import openai
+import os
 from dotenv import load_dotenv
 
+# ========== Configure OpenAI ==========
 load_dotenv()
-
-# Azure OpenAI Configuration
 openai.api_type = "azure"
 openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
-DEPLOYMENT_GPT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
-DEPLOYMENT_EMBED = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
+LLM_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")  # 补充: 用于 gpt 调用
 
-# Context loading
-INDEX_PATH = "rag/faiss_index.index"
-META_PATH = "rag/faiss_metadata.json"
+# ========== Load FAISS index and metadata ==========
+index = faiss.read_index("rag/faiss_index.index")
 
-# Loading FAISS index and metadata
-index = faiss.read_index(INDEX_PATH)
-with open(META_PATH, "r", encoding="utf-8") as f:
+with open("rag/metadata.json", "r", encoding="utf-8") as f:
     metadata = json.load(f)
 
-def embed_query(query):
+# ========== Core Function ==========
+def query_with_rag(question, chatbot_name, top_k=60, distance_threshold=1.5):
+    # Step 1: Embed the query
     response = openai.Embedding.create(
-        input=[query],
-        deployment_id=DEPLOYMENT_EMBED
+        deployment_id=DEPLOYMENT,
+        input=[question]
     )
-    return np.array(response["data"][0]["embedding"], dtype="float32")
+    query_vec = np.array(response["data"][0]["embedding"]).astype("float32")
 
-def search_context(query, top_k=5):
-    query_vec = embed_query(query)
+    # Step 2: FAISS similarity search
     D, I = index.search(np.array([query_vec]), top_k)
+
+    # Step 3: Filter by distance threshold and collect context
     contexts = []
-    for i in I[0]:
-        if i < len(metadata):
-            m = metadata[i]
-            meta = m["metadata"]
-            formatted = f"[{meta['product_name']}] - {meta.get('chunk_type', '')}\n{m['content']}"
-            contexts.append(formatted)
-    return "\n---\n".join(contexts)
+    sources = []
+    for dist, i in zip(D[0], I[0]):
+        if i < len(metadata) and dist < distance_threshold:
+            meta = metadata[i]
+            context_text = meta.get("content", "")
+            contexts.append(context_text)
 
-def ask_with_context(question, chatbot_name):
-    context = search_context(question)
+            sources.append({
+                "brand": meta.get("metadata", {}).get("brand"),
+                "product_name": meta.get("metadata", {}).get("product_name"),
+                "field": meta.get("metadata", {}).get("field"),
+                "url": meta.get("metadata", {}).get("product_url", ""),
+                # "distance": round(float(dist), 4)
+            })
 
-    prompt = f"""
-                Answer the question based only on the following content.
-                If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
-                Be concise, factual, and in English.
-                Do not mention the source or say 'based on the context'.
-                If you don't know the answer, say "I don't know" or "I can't help with that".
-                            
-                Context:
-                {context}
-                
-                Question:
-                {question}
-                
-                Answer:
-             """
+    full_context = "\n---\n".join(contexts)
 
-    response = openai.ChatCompletion.create(
-        deployment_id=DEPLOYMENT_GPT,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
+    # Step 4: Call LLM (Optional: you can skip this step and just return context if needed)
+    sys_prompt = f"""
+                        Your home website is https://www.madewithnestle.ca/ and you must only use the provided context to answer the question no matter the question contains keywords such as "nestle".
+
+                        Do not rely on your own knowledge or assumptions.
+                        If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
+                        Be concise, factual, and in English. Do not say 'based on the context'.
+                        Only use content that is clearly relevant to the question.
+                        Ignore irrelevant products or content even if they are nearby in the context.
+
+                        Please format your answer based on the type:
+                        1. If the answer contains **product recommendations**, show each product as a markdown hyperlink like [**Product Name**](url of each product from the context provided) and add "you can visit following links:" before you provide the link.
+                        2. If the answer contains **factual or informational content**, insert markdown hyperlinks directly inside the text, and add a citation number in format of [1], [2] ... etc. after each link **inside the text**.
+                        Do not include a "References" section at the end of the message.
+                        Use markdown formatting for links and bulleted lists where appropriate.
+
+                        Context:
+                        {full_context}
+                      """
+
+    user_prompt = f"""
+                        Question:
+                        {question}
+                      """
+
+    completion = openai.ChatCompletion.create(
+        deployment_id=LLM_DEPLOYMENT,
+        messages=[
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {question}"}
+        ],
+        temperature=0.2,
         max_tokens=300
     )
 
-    return response["choices"][0]["message"]["content"].strip()
+    answer = completion["choices"][0]["message"]["content"]
 
-if __name__ == "__main__":
-    # Development Testing
-    while True:
-        query = input("Enter your question (or type 'exit' to quit): ").strip()
-        if query.lower() == "exit":
-            break
+    # Reduce duplicate references
+    used_titles = set()
+    counter = 1
+    for ref in sources:
+        product = ref["product_name"]
+        url = ref["url"]
 
-        while True:
-            try:
-                answer = ask_with_context(query)
-                print("\n[Answer]:\n", answer)
-                break  # Retry gpt prompt since free tier has quota limitation
-            except RateLimitError:
-                print("\n[!] Rate limit reached. Waiting 60 seconds to retry...")
-                for i in range(60, 0, -1):
-                    print(f"Retrying in {i} seconds...", end='\r')
-                    time.sleep(1)
-                print("\n[↻] Retrying...")
+        if product in answer and product not in used_titles:
+            answer = answer.replace(
+                product,
+                f"[{product}]({url})[{counter}]"
+            )
+            used_titles.add(product)
+            counter += 1
+
+    return {
+        # "question": query,
+        "answer": answer,
+        # "context_used": contexts,
+        "reference": sources
+    }
+
+# if __name__ == "__main__":
+#     query = "tell me about your brands"
+#     result = query_with_rag(query, "s")
+#     print("\n🧠 Answer:\n", result["answer"])
+#     print("\n📚 Sources:\n", json.dumps(result["reference"], indent=2))

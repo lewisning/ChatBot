@@ -2,6 +2,7 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .rag_answer import ask_with_context
+from .preprocessing.query_with_rag import query_with_rag
 
 @csrf_exempt
 def rag_ask_view(request):
@@ -13,7 +14,7 @@ def rag_ask_view(request):
             return JsonResponse({"error": "Missing question"}, status=400)
 
         try:
-            answer = ask_with_context(question, chatbot_name=name)
+            answer = query_with_rag(question, chatbot_name=name)
             return JsonResponse(answer)
         except Exception as e:
             print("[ERROR]", e)
