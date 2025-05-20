@@ -1,10 +1,9 @@
 from django.urls import path
-from chatbot.views import chat_view
 from rag.views import rag_ask_view
-# from graph.
+from rag.langchain.combine_answer import grag_view
 
 urlpatterns = [
     # path('chat/', chat_view),
     path("chat/", rag_ask_view),
-    # path("graph_chat",)
+    path("gchat/", grag_view)
 ]

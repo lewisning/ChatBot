@@ -12,7 +12,7 @@ openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
 openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME")
-LLM_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")  # 补充: 用于 gpt 调用
+LLM_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 
 # ========== Load FAISS index and metadata ==========
 index = faiss.read_index("rag/faiss_index.index")
@@ -43,8 +43,9 @@ def query_with_rag(question, chatbot_name, top_k=60, distance_threshold=1.5):
 
             sources.append({
                 "brand": meta.get("metadata", {}).get("brand"),
-                "product_name": meta.get("metadata", {}).get("product_name"),
-                "field": meta.get("metadata", {}).get("field"),
+                "product_name": meta.get("metadata", {}).get("product_name", ""),
+                "brand_url": meta.get("metadata", {}).get("brand_url", ""),
+                # "field": meta.get("metadata", {}).get("field"),
                 "url": meta.get("metadata", {}).get("product_url", ""),
                 # "distance": round(float(dist), 4)
             })
@@ -62,16 +63,16 @@ def query_with_rag(question, chatbot_name, top_k=60, distance_threshold=1.5):
                         Ignore irrelevant products or content even if they are nearby in the context.
 
                         Please format your answer based on the type:
-                        1. If the answer contains **product recommendations**, show each product as a markdown hyperlink like [**Product Name**](url of each product from the context provided) and add "you can visit following links:" before you provide the link.
+                        1. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](url of each product from the context provided) and add "you can visit following links:" before you provide the link.
                         2. If the answer contains **factual or informational content**, insert markdown hyperlinks directly inside the text, and add a citation number in format of [1], [2] ... etc. after each link **inside the text**.
                         Do not include a "References" section at the end of the message.
                         Use markdown formatting for links and bulleted lists where appropriate.
 
-                        Context:
-                        {full_context}
                       """
 
     user_prompt = f"""
+                        Context:
+                        {full_context}
                         Question:
                         {question}
                       """
@@ -80,7 +81,7 @@ def query_with_rag(question, chatbot_name, top_k=60, distance_threshold=1.5):
         deployment_id=LLM_DEPLOYMENT,
         messages=[
             {"role": "system", "content": sys_prompt},
-            {"role": "user", "content": f"Context:\n{full_context}\n\nQuestion: {question}"}
+            {"role": "user", "content": user_prompt}
         ],
         temperature=0.2,
         max_tokens=300
@@ -90,28 +91,68 @@ def query_with_rag(question, chatbot_name, top_k=60, distance_threshold=1.5):
 
     # Reduce duplicate references
     used_titles = set()
+    url_counter = {}
     counter = 1
-    for ref in sources:
-        product = ref["product_name"]
-        url = ref["url"]
-
-        if product in answer and product not in used_titles:
-            answer = answer.replace(
-                product,
-                f"[{product}]({url})[{counter}]"
-            )
-            used_titles.add(product)
-            counter += 1
+    reference = []
+    # for ref in sources:
+    #     product = ref.get("product_name", "")
+    #     brand = ref.get("brand", "")
+    #     url = ref.get("url")
+    #
+    #     if product in answer and product not in used_titles:
+    #         answer = answer.replace(
+    #             product,
+    #             f"[**{product}**]({url})[{counter}]"
+    #         )
+    #         reference.append({"url": url, "number": counter})
+    #         used_titles.add(product)
+    #         counter += 1
+    #     if brand in answer and brand not in used_titles:
+    #         answer = answer.replace(
+    #             brand,
+    #             f"[**{brand}**]({url})[{counter}]"
+    #         )
+    #         reference.append({"url": url, "number": counter})
+    #         used_titles.add(product)
+    #         counter += 1
 
     return {
         # "question": query,
-        "answer": answer,
+        "answer": full_context,
         # "context_used": contexts,
-        "reference": sources
+        "reference": reference
     }
 
-# if __name__ == "__main__":
-#     query = "tell me about your brands"
-#     result = query_with_rag(query, "s")
-#     print("\n🧠 Answer:\n", result["answer"])
-#     print("\n📚 Sources:\n", json.dumps(result["reference"], indent=2))
+# def query_with_rag(question, top_k=5, distance_threshold=0.7):
+#     response = openai.Embedding.create(
+#                 deployment_id=DEPLOYMENT,
+#                 input=[question]
+#             )
+#     query_vec = np.array(response["data"][0]["embedding"]).astype("float32")
+#     D, I = index.search(np.array([query_vec]), top_k)
+#
+#     contexts = []
+#     sources = []
+#
+#     for dist, i in zip(D[0], I[0]):
+#         if i < len(metadata) and dist < distance_threshold:
+#             meta = metadata[i]
+#             content = meta.get("content", "")
+#             contexts.append(content)
+#
+#             sources.append({
+#                 "brand": meta.get("metadata", {}).get("brand"),
+#                 "product_name": meta.get("metadata", {}).get("product_name"),
+#                 "product_url": meta.get("metadata", {}).get("product_url"),
+#                 "brand_url": meta.get("metadata", {}).get("brand_url")
+#             })
+#
+#     context_text = "\n".join(contexts)
+#     return context_text, sources
+
+
+if __name__ == "__main__":
+    query = "what brands do you have?"
+    result = query_with_rag(query, "s")
+    print("\n🧠 Answer:\n", result["answer"])
+    print("\n📚 Sources:\n", result["reference"])
