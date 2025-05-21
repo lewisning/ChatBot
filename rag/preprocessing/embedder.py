@@ -2,7 +2,7 @@ import json
 import os
 from dotenv import load_dotenv
 
-from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain.vectorstores import FAISS
 
 # ========== Configure Azure OpenAI ==========

@@ -1,6 +1,6 @@
 from langchain.chains.llm import LLMChain
 from langchain.vectorstores import FAISS
-from langchain.embeddings import AzureOpenAIEmbeddings
+from langchain_openai import AzureOpenAIEmbeddings
 from langchain.chat_models import AzureChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate

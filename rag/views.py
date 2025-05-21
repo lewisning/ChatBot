@@ -2,26 +2,25 @@ import json
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 
 from rag.langchain.rag_answer import query_with_langchain_rag
-from .preprocessing.query_with_rag import query_with_rag
+# from .preprocessing.query_with_rag import query_with_rag
 
 
-@csrf_exempt
+@api_view(["POST"])
 def rag_ask_view(request):
-    if request.method == "POST":
-        data = json.loads(request.body)
-        question = data.get("question")
-        name = data.get("name")
-        if not question:
-            return JsonResponse({"error": "Missing question"}, status=400)
+    question = request.data.get("question")
+    name = request.data.get("name")
+    if not question:
+        return Response({"error": "Missing question"}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            # answer = query_with_rag(question, chatbot_name=name)
-            answer = query_with_langchain_rag(question, chatbot_name=name)
-            return JsonResponse(answer)
-        except Exception as e:
-            print("[ERROR]", e)
-            return JsonResponse({"error": str(e)}, status=500)
-
-    return JsonResponse({"error": "Invalid method"}, status=405)
+    try:
+        # answer = query_with_rag(question, chatbot_name=name)
+        answer = query_with_langchain_rag(question, chatbot_name=name)
+        return Response(answer)
+    except Exception as e:
+        print("[ERROR]", e)
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -18,9 +18,9 @@ llm = AzureChatOpenAI(
 
 # 2. Initialize Neo4j Graph
 graph = Neo4jGraph(
-    url="bolt://localhost:7687",
-    username="neo4j",
-    password="test1234"
+    url=os.getenv("NEO4J_URI"),
+    username=os.getenv("NEO4J_USERNAME"),
+    password=os.getenv("NEO4J_PASSWORD")
 )
 
 schema = """
@@ -33,7 +33,7 @@ schema = """
 chain = GraphCypherQAChain.from_llm(
     llm=llm,
     graph=graph,
-    verbose=True,  # 打印生成的 Cypher
+    verbose=True,  # Print debug information
     allow_dangerous_requests=True,
     cypher_prompt_template=f"""
                             You are a Cypher expert. Only generate READ-ONLY Cypher queries.
@@ -43,6 +43,6 @@ chain = GraphCypherQAChain.from_llm(
 )
 
 # 4. Ask a question
-question = "How many products do you have in total?"
+question = "Which product has the lowest Calories from Aero?"
 result = chain.invoke(question)
-print(result)
+print(result["result"])

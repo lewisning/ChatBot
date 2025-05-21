@@ -23,10 +23,11 @@ llm = AzureChatOpenAI(
 )
 
 # Neo4j Graph Configuration
+
 graph = Neo4jGraph(
-    url="bolt://localhost:7687",
-    username="neo4j",
-    password="test1234"
+    url=os.getenv("NEO4J_URI"),
+    username=os.getenv("NEO4J_USERNAME"),
+    password=os.getenv("NEO4J_PASSWORD")
 )
 
 # GraphCypherQAChain Configuration with custom prompt
