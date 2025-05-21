@@ -115,7 +115,7 @@ function ChatWidget() {
     setMessage('');
 
     try {
-      const res = await axios.post('${process.env.REACT_APP_API_URL}/chat/', { question: message, name: userInfo.name });
+      const res = await axios.post(`${process.env.REACT_APP_API_URL}/chat/`, { question: message, name: userInfo.name });
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
