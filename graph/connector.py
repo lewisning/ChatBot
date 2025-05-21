@@ -1,9 +1,17 @@
 import json
 import re
 from neo4j import GraphDatabase
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+graph_username = os.getenv("NEO4J_USERNAME")
+graph_password = os.getenv("NEO4J_PASSWORD")
+graph_uri = os.getenv("NEO4J_URI")
 
 class GraphConnector:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="test1234"):
+    def __init__(self, uri=graph_uri, user=graph_username, password=graph_password):
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
 
     def close(self):
