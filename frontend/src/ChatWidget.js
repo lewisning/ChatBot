@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 
 function ChatWidget() {
   useEffect(() => {
-    document.title = "Nestl ChatBot";
+    document.title = "Nestlé ChatBot";
   }, []);
   // 1. Initialization
   const bottomRef = React.useRef(null);
@@ -118,7 +118,7 @@ function ChatWidget() {
     setMessage('');
 
     try {
-      const res = await axios.post(`${process.env.REACT_APP_API_URL}/chat/`, { question: message, name: userInfo.name });
+      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", { question: message, name: userInfo.name });
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
