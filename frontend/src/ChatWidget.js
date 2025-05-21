@@ -8,6 +8,9 @@ import avatar4 from './assets/avatars/avatar4.png';
 import ReactMarkdown from 'react-markdown';
 
 function ChatWidget() {
+  useEffect(() => {
+    document.title = "Nestl ChatBot";
+  }, []);
   // 1. Initialization
   const bottomRef = React.useRef(null);
   const [isOpen, setIsOpen] = useState(false);  // Chat window open status
