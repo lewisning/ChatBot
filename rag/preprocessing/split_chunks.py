@@ -11,7 +11,7 @@ def ingredients_helper(text):
     bracket_ingredients = re.findall(r'\((.*?)\)', text)
 
     # Split non-bracketed text by commas and periods
-    non_bracket_text = re.sub(r'\(.*?\)', '', text)  # 移除所有括号内容
+    non_bracket_text = re.sub(r'\(.*?\)', '', text)  # Remove bracketed text
     split_non_bracket = re.split(r'[,.]', non_bracket_text)
 
     # Merge bracketed and non-bracketed ingredients
@@ -24,7 +24,7 @@ def ingredients_helper(text):
     # Process non-bracketed ingredients
     for part in split_non_bracket:
         part = part.strip()
-        if part and not part.startswith(('May contain', '*')):  # 过滤无效部分
+        if part and not part.startswith(('May contain', '*')):  # Ignore unwanted parts
             ingredients.append(part)
 
     # Remove duplicates while preserving order
@@ -63,7 +63,7 @@ for brand_block in raw_data:
         product_url = product.get("product_url", "")
 
         # --- Chunk 1: product_metadata ---
-        meta_content = f"\"{name}\" is a product belongs to \"{brand}\" brand."
+        meta_content = f"\"{name}\" is a product belongs to \"{brand}\" brand. The url (link) of this product is: {product_url}."
         if status:
             meta_content += f" It is the {status} product."
 
@@ -93,14 +93,13 @@ for brand_block in raw_data:
                     "chunk_type": "core_desc",
                     "specification": specification
                 },
-                "content": f"{name} ({specification}): {desc_short}. "
-                           f"The url (link) of this product is: {product_url}. "
+                "content": f"{name} ({specification}): {desc_short}."
             })
 
         # --- Chunk 3: nutrition (one per nutrient) ---
         nutrition_list = product.get("nutrition", [])
         for item in nutrition_list:
-            field = item.get("type", "").strip()
+            field = item.get("type", "").strip().lower()
             amount = item.get("amount", "").strip()
             dv = item.get("dv", "").strip()
 
@@ -143,21 +142,35 @@ for brand_block in raw_data:
 
         # --- Chunk 5: ingredients ---
         ingredients = product.get("ingredient", "")
-        ingredient_lines = ingredients_helper(ingredients)
-        for line in ingredient_lines:
-            if line.strip():
-                field = line.strip()
-                chunks.append({
-                    "metadata": {
-                        "brand": brand,
-                        "product_name": name,
-                        "brand_url": brand_url,
-                        "product_url": product_url,
-                        "chunk_type": "ingredients",
-                        "field": field
-                    },
-                    "content": f"{name} has the ingredients: {field}"
-                })
+        if ingredients:
+            ingredient_lines = ingredients_helper(ingredients)
+            for line in ingredient_lines:
+                if line.strip():
+                    field = line.strip()
+                    chunks.append({
+                        "metadata": {
+                            "brand": brand,
+                            "product_name": name,
+                            "brand_url": brand_url,
+                            "product_url": product_url,
+                            "chunk_type": "ingredients",
+                            "field": field
+                        },
+                        "content": f"{name} has the ingredients: {field}"
+                    })
+        else:
+            chunks.append({
+                "metadata": {
+                    "brand": brand,
+                    "product_name": name,
+                    "brand_url": brand_url,
+                    "product_url": product_url,
+                    "chunk_type": "ingredients",
+                    "field": "Not provided"
+                },
+                "content": f"The ingredients of {name} are not provided."
+            })
+
 
 
 # === Save as chunks.json ===

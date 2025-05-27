@@ -46,7 +46,7 @@ def query_with_langchain_rag(question, chatbot_name):
                     Ignore irrelevant products or content even if they are nearby in the context.
 
                     Please format your answer based on the type:
-                    1. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](url of each product from the context provided) and add "you can visit following links:" before you provide the link.
+                    1. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](**YOU MUST USE THE EXACTLY PROVIDED URL FROM THE CONTEXT FOR EVERY SINGLE PRODUCT) and add "you can visit following links:" before you provide the link.
                     2. If the answer contains **factual or informational content**, insert markdown hyperlinks directly inside the text, and add a citation number in format of [1], [2] ... etc. after each link **inside the text**.
                     Do not include a "References" section at the end of the message.
                     Use markdown formatting for links and bulleted lists where appropriate.

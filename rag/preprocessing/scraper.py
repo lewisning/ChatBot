@@ -335,7 +335,7 @@ def scrape_site(start_url):
             #           ]
 
             print(f"Discovered {len(brands)} brands, starting to scrape...")
-            for brand_info in brands[:2]:
+            for brand_info in brands[:5]:
                 if brand_info['url'] in visited:
                     continue
 
