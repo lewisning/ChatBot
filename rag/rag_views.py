@@ -5,6 +5,7 @@ from rest_framework import status
 from rag.langchain.rag_answer import query_with_langchain_rag
 from rag.langchain.graph_answer import grag_view
 from geolocation.location_finder import location_query
+from rag.langchain.response_selector import question_classifier
 
 @api_view(["POST"])
 def rag_ask_view(request):
@@ -12,18 +13,18 @@ def rag_ask_view(request):
     name = request.data.get("name")
     lat = request.data.get('latitude')
     lon = request.data.get('longitude')
-    nutritions = ["calories", "fat", "carbohydrates", "protein", "sugar", "sodium"]
 
     if not question:
         return Response({"error": "Missing question"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        option = question_classifier(question)
         # Find store locator and provide Amazon link
-        if "where" in question and "buy" in question and lat and lon:
+        if option == "store":
             answer = location_query(question, float(lon), float(lat))
             return answer
         # If the question is about nutrition facts or how many/much of a specific nutrition (GraphRAG)
-        elif "how many" in question or "how much" in question or any(nutrition in question for nutrition in nutritions):
+        elif option == "graphrag":
             answer = grag_view(question)
             return answer
         # If the question is about a specific product or brand (LangChain RAG)
