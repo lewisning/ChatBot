@@ -171,6 +171,19 @@ for brand_block in raw_data:
                 "content": f"The ingredients of {name} are not provided."
             })
 
+        # --- Chunk 6: category ---
+        chunks.append({
+            "metadata": {
+                "brand": brand,
+                "product_name": name,
+                "brand_url": brand_url,
+                "product_url": product_url,
+                "chunk_type": "category",
+                "field": category
+            },
+            "content": f"{name} belongs to the {category} category."
+        })
+
 
 
 # === Save as chunks.json ===

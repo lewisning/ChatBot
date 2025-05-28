@@ -120,6 +120,23 @@ class GraphConnector:
                         ingredient=ingredient
                     )
 
+            # === Node 7: Category ===
+            elif chunk_type == "category":
+                category = meta.get("field").lower()
+                if category:
+                    session.run(
+                        """
+                        MATCH (p:Product {name: $product})
+                        MERGE (c:Category {name: $category})
+                        MERGE (p)-[:BELONGS_TO]->(c)
+                        """,
+                        product=product,
+                        category=category
+                    )
+
+            else:
+                print(f"Unknown chunk type: {chunk_type} for product {product}")
+
 def load_and_ingest_optimized(filepath):
     with open(filepath, "r", encoding="utf-8") as f:
         raw_data = json.load(f)
