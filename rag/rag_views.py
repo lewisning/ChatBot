@@ -6,7 +6,6 @@ from rag.langchain.rag_answer import query_with_langchain_rag
 from rag.langchain.combine_answer import grag_view
 from geolocation.location_finder import location_query
 
-
 @api_view(["POST"])
 def rag_ask_view(request):
     question = request.data.get("question").lower()
@@ -25,7 +24,6 @@ def rag_ask_view(request):
             return answer
         # If the question is about nutrition facts or how many/much of a specific nutrition (GraphRAG)
         elif "how many" in question or "how much" in question or any(nutrition in question for nutrition in nutritions):
-            # answer = query_with_rag(question, chatbot_name=name)
             answer = grag_view(question)
             return answer
         # If the question is about a specific product or brand (LangChain RAG)
