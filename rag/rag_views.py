@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from rag.langchain.rag_answer import query_with_langchain_rag
-from rag.langchain.combine_answer import grag_view
+from rag.langchain.graph_answer import grag_view
 from geolocation.location_finder import location_query
 
 @api_view(["POST"])

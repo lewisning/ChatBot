@@ -36,6 +36,16 @@ function ChatWidget() {
   }, []);
 
   useEffect(() => {
+    if (isOpen && bottomRef.current) {
+      const scrollTimeout = setTimeout(() => {
+        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+
+    return () => clearTimeout(scrollTimeout);
+  }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -94,6 +104,7 @@ function ChatWidget() {
       };
 
       const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      // const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -138,7 +149,6 @@ function ChatWidget() {
         <img src={"/bot-icon.png"}  alt="chat icon" className="chatbot-button"/>
       </div>
 
-
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -148,108 +158,111 @@ function ChatWidget() {
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="chat-header">
-              <img
-                src={userInfo.avatar}
-                className="user-avatar"
-                alt="avatar"
-                onClick={() => setShowAvatarPopup(true)}
-                title="Click to change avatar"
-              />
-              {isEditingName ? (
-                <input
-                  type="text"
-                  value={userInfo.name}
-                  onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
-                  onBlur={() => setIsEditingName(false)}
-                  onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
-                  className="username-input"
-                  autoFocus
+            <div className={`chat-content ${showAvatarPopup ? 'chat-blurred' : ''}`}>
+              <div className="chat-header">
+                <img
+                  src={userInfo.avatar}
+                  className="user-avatar"
+                  alt="avatar"
+                  onClick={() => setShowAvatarPopup(true)}
+                  title="Click to change avatar"
                 />
-              ) : (
-                <span
-                  className="username"
-                  onDoubleClick={() => setIsEditingName(true)}
-                  title="Double click to edit"
-                >
-                  {userInfo.name}
-                </span>
-              )}
-              <button onClick={toggleChat} className="chat-close-button">
-                <img src="/close.png" alt="Close" className="chat-close-icon" />
-              </button>
-            </div>
-
-            <div className="chat-body">
-              {chatLog.map((msg, idx) => (
-                <div key={idx} className={`chat-message-block ${msg.sender}`}>
-                  <div className="chat-message-row">
-                    <div className="chat-bubble">
-                      <div className="chat-text">
-                        <ReactMarkdown>{msg.text}</ReactMarkdown>
-                      </div>
-                      <div className="chat-time">{msg.time}</div>
-                    </div>
-                  </div>
-                  {msg.refs && msg.refs.length > 0 && (
-                    <div className="chat-references">
-                      <strong>References:</strong>
-                      {msg.refs.map(ref => (
-                        <a
-                          key={ref.number}
-                          href={ref.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ref-button"
-                        >
-                          [{ref.number}]
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-
-            <div className="chat-footer">
-              <div className="chat-input-wrapper">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={e => setMessage(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                  placeholder="Ask me anything..."
-                />
-                <button onClick={sendMessage}>
-                  <img src="/send-icon.png" alt="Send" />
+                {isEditingName ? (
+                  <input
+                    type="text"
+                    value={userInfo.name}
+                    onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
+                    onBlur={() => setIsEditingName(false)}
+                    onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                    className="username-input"
+                    autoFocus
+                  />
+                ) : (
+                  <span
+                    className="username"
+                    onDoubleClick={() => setIsEditingName(true)}
+                    title="Double click to edit"
+                  >
+                    {userInfo.name}
+                  </span>
+                )}
+                <button onClick={toggleChat} className="chat-close-button">
+                  <img src="/close.png" alt="Close" className="chat-close-icon" />
                 </button>
+              </div>
+
+              <div className="chat-body">
+                {chatLog.map((msg, idx) => (
+                  <div key={idx} className={`chat-message-block ${msg.sender}`}>
+                    <div className="chat-message-row">
+                      <div className="chat-bubble">
+                        <div className="chat-text">
+                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                        </div>
+                        <div className="chat-time">{msg.time}</div>
+                      </div>
+                    </div>
+                    {msg.refs && msg.refs.length > 0 && (
+                      <div className="chat-references">
+                        <strong>References:</strong>
+                        {msg.refs.map(ref => (
+                          <a
+                            key={ref.number}
+                            href={ref.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ref-button"
+                          >
+                            [{ref.number}]
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={bottomRef} />
+              </div>
+
+              <div className="chat-footer">
+                <div className="chat-input-wrapper">
+                  <input
+                    type="text"
+                    value={message}
+                    onChange={e => setMessage(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendMessage()}
+                    placeholder="Ask me anything..."
+                  />
+                  <button onClick={sendMessage}>
+                    <img src="/send-icon.png" alt="Send" />
+                  </button>
+                </div>
               </div>
             </div>
 
+            {showAvatarPopup && (
+              <div className="avatar-overlay-inside" onClick={() => setShowAvatarPopup(false)}>
+                <div className="avatar-popup" onClick={e => e.stopPropagation()}>
+                  <p>Choose your avatar:</p>
+                  <div className="avatar-options">
+                    {[avatar1, avatar2, avatar3, avatar4].map((img, idx) => (
+                      <img
+                        key={idx}
+                        src={img}
+                        alt={`avatar-${idx}`}
+                        className={`avatar-pick ${userInfo.avatar === img ? 'selected' : ''}`}
+                        onClick={() => {
+                          setUserInfo({ ...userInfo, avatar: img });
+                          setShowAvatarPopup(false);
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
-
-      {showAvatarPopup && (
-        <div className="avatar-popup">
-          <p>Choose your avatar:</p>
-          <div className="avatar-options">
-            {[avatar1, avatar2, avatar3, avatar4].map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt={`avatar-${idx}`}
-                className={`avatar-pick ${userInfo.avatar === img ? 'selected' : ''}`}
-                onClick={() => {
-                  setUserInfo({ ...userInfo, avatar: img });
-                  setShowAvatarPopup(false);
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
