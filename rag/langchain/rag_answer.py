@@ -64,7 +64,6 @@ class ProductLinkManager:
                         "display_name": f"{product} ({brand})" if brand else product,
                         "brand": brand
                     }
-            print(self.product_links)
 
         except FileNotFoundError:
             print(f"Warning: {self.chunks_json_path} not found")
@@ -72,8 +71,6 @@ class ProductLinkManager:
             print(f"Warning: Invalid JSON in {self.chunks_json_path}")
 
     def get_product_link(self, product_name, brand_name):
-        """获取产品链接信息"""
-        # 尝试不同的键组合
         keys_to_try = [
             f"{product_name.lower()}_{brand_name.lower()}".strip("_"),
             product_name.lower(),
@@ -87,20 +84,19 @@ class ProductLinkManager:
         return None
 
     def get_brand_link(self, brand_name):
-        """获取品牌链接"""
         return self.brand_links.get(brand_name.lower(), "")
 
     def extract_and_validate_links(self, response_text):
-        """从响应中提取产品名称并验证/替换链接"""
-        # 匹配markdown链接格式 [**Product (Brand) Name**](url)
+        # Extract the product name from the response and validate/replace the link
+        # Matching Markdown format: [**Product/Brand Name**](url)
         link_pattern = r'\[\*\*(.*?)\*\*\]\((.*?)\)'
 
         def replace_link(match):
             display_text = match.group(1)
             current_url = match.group(2)
 
-            # 尝试从显示文本中提取产品名和品牌名
-            # 假设格式是 "Product Name (Brand)" 或 "Product Name"
+            # Try to extract product and brand from the display text
+            # Format: "Product Name (Brand)" or "Product Name"
             if "(" in display_text and ")" in display_text:
                 product_part = display_text.split("(")[0].strip()
                 brand_part = display_text.split("(")[1].replace(")", "").strip()
@@ -108,7 +104,7 @@ class ProductLinkManager:
                 product_part = display_text.strip()
                 brand_part = ""
 
-            # 获取正确的链接
+            # Get the correct url
             product_info = self.get_product_link(product_part, brand_part)
 
             if product_info:
@@ -116,16 +112,16 @@ class ProductLinkManager:
                 correct_display = product_info["display_name"]
                 return f"[**{correct_display}**]({correct_url})"
             else:
-                # 如果找不到匹配的产品，保持原样但记录警告
-                print(f"Warning: Could not find link for product: {display_text}")
+                # Fallback: if no link found, return the original match with warning
+                print(f"WARNING: Could not find link for product: {display_text}")
                 return match.group(0)
 
-        # 替换所有链接
+        # Substitute all links in the response text
         corrected_response = re.sub(link_pattern, replace_link, response_text)
         return corrected_response
 
 def query_with_langchain_rag(question, chatbot_name, validate_links=True):
-    # 初始化链接管理器
+    # 0. Initialize the link manager if link validation is enabled
     link_manager = ProductLinkManager() if validate_links else None
 
     # 1. Construct the embedding model
@@ -138,8 +134,7 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
     # 2. Load the FAISS index
     vectorstore = FAISS.load_local("rag/faiss_index", embedding, allow_dangerous_deserialization=True)
 
-    # 3. Construct the LLM
-    # 修改prompt模板，强调使用准确的URL
+    # 3. Construct the LLM with enhanced prompt template
     prompt_template = PromptTemplate(
         input_variables=["context", "question", "chatbot_name"],
         template="""
@@ -153,11 +148,10 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
 
                     IMPORTANT: When providing product links, you MUST use the EXACT URL provided in the context for each product. Do not modify or generate URLs.
 
-                    Please format your answer based on the type:
-                    1. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](EXACT_URL_FROM_CONTEXT) and add "you can visit following links:" before you provide the link.
-                    2. If the answer contains **factual or informational content**, insert markdown hyperlinks directly inside the text, and add a citation number in format of [1], [2] ... etc. after each link **inside the text**.
-                    Do not include a "References" section at the end of the message.
-                    Use markdown formatting for links and bulleted lists where appropriate.
+                    MUST FOLLOW THE INSTRUCTIONS BELOW:
+                    1. Add "you can visit following links:" before you provide the link.
+                    2. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](EXACT_URL_FROM_CONTEXT)
+                    3. Use markdown formatting for links and bulleted lists where appropriate.
 
                     context: {context},
                     question: {question}
@@ -171,8 +165,7 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
         api_version=AZURE_OPENAI_VERSION,
         azure_endpoint=AZURE_OPENAI_ENDPOINT,
         azure_deployment=AZURE_OPENAI_MODEL_DEPLOYMENT,
-        temperature=0.2,
-        max_tokens=1000
+        temperature=0.2
     )
 
     # 4. Encapsulate the LLM and vectorstore in a RetrievalQA chain
@@ -186,7 +179,7 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
     # 5. Define the query function
     result = retrieval_chain({"query": question})
 
-    # 6. 验证和修正链接（如果启用）
+    # 6. Verify and fix the url
     answer = result["result"]
     if validate_links and link_manager:
         answer = link_manager.extract_and_validate_links(answer)
@@ -200,4 +193,4 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
 if __name__ == "__main__":
     res = query_with_langchain_rag("can you introduce s'mores products", "assistant")
     print("Answer:", res["answer"])
-    # print("Sources:", res["sources"])
+    print("Sources:", res["sources"])
