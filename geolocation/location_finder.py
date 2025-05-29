@@ -6,6 +6,7 @@ import os
 from urllib.parse import quote_plus
 import json
 from functools import lru_cache
+from rag.langchain.name_match import product_match
 
 # Mock data for stores and products
 with open("./rag/mock_stores.json", 'r') as f:
@@ -74,7 +75,7 @@ def location_query(question, lon, lat):
     # print("\n\n\n",product_keywords,"\n\n\n")
     # print("\n\n\n", product_to_brand, "\n\n\n")
 
-    matched_product = next((kw for kw in product_keywords if kw in question), None)
+    matched_product = product_match(question, product_keywords)
     if not matched_product:
         return Response({"answer": "Sorry, I couldn't identify which product you're asking about.\n\nYou can find more information on [madewithnestle](https://www.madewithnestle.ca/)."}, status=200)
 
