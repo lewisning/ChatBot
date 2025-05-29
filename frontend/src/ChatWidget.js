@@ -197,7 +197,17 @@ function ChatWidget() {
                     <div className="chat-message-row">
                       <div className="chat-bubble">
                         <div className="chat-text">
-                          <ReactMarkdown>{msg.text}</ReactMarkdown>
+                          <ReactMarkdown
+                            components={{
+                              a: ({ node, ...props }) => (
+                                <a {...props} target="_blank" rel="noopener noreferrer">
+                                  {props.children}
+                                </a>
+                              ),
+                            }}
+                          >
+                            {msg.text}
+                          </ReactMarkdown>
                         </div>
                         <div className="chat-time">{msg.time}</div>
                       </div>
