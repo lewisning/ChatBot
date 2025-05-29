@@ -1,0 +1,302 @@
+[
+  {
+    "name":"Walmart Toronto",
+    "lat":43.6532,
+    "lon":-79.3832,
+    "products":[
+      "big turk",
+      "aero truffle chocolate mousse milk chocolate bar",
+      "kitkat holiday cabin kit"
+    ]
+  },
+  {
+    "name":"Shoppers Downtown",
+    "lat":43.651,
+    "lon":-79.347,
+    "products":[
+      "after eight holiday advent calendar",
+      "kitkat mini easter chocolate bunny 5-pack",
+      "kitkat chunky peanut butter, mega size"
+    ]
+  },
+  {
+    "name":"Loblaws",
+    "lat":43.66,
+    "lon":-79.4,
+    "products":[
+      "aero snack size, milk chocolate, peanut-free",
+      "coffee crisp 4-pack",
+      "easter chocolate assorted hide me eggs pouch"
+    ]
+  },
+  {
+    "name":"Metro Dundas Square",
+    "lat":43.6561,
+    "lon":-79.3802,
+    "products":[
+      "after eight mint trio collection box",
+      "aero peppermint bar 4-pack",
+      "aero peppermint chocolate bar"
+    ]
+  },
+  {
+    "name":"Sobeys Urban Fresh",
+    "lat":43.6708,
+    "lon":-79.3883,
+    "products":[
+      "kit kat ice-cream bars",
+      "after eight skyline classic tin",
+      "kit kat easter break chocolate and wafer bunnies 12 pack"
+    ]
+  },
+  {
+    "name":"No Frills Queen West",
+    "lat":43.644,
+    "lon":-79.4021,
+    "products":[
+      "aero truffle salted caramel",
+      "aero milk chocolate minis 98g",
+      "aero easter chocolate lamb 5-pack"
+    ]
+  },
+  {
+    "name":"Costco Etobicoke",
+    "lat":43.6242,
+    "lon":-79.5219,
+    "products":[
+      "crunch chocolate bar",
+      "kitkat pops milk chocolaty snacks carton 70 g",
+      "aero peppermint share-size milk chocolate bar"
+    ]
+  },
+  {
+    "name":"Walmart Scarborough",
+    "lat":43.7703,
+    "lon":-79.2537,
+    "products":[
+      "coffee crisp\u00ae minis classic",
+      "nestl\u00e9 buncha crunch",
+      "kitkat lovers assorted minis"
+    ]
+  },
+  {
+    "name":"Real Canadian Superstore",
+    "lat":43.7543,
+    "lon":-79.3006,
+    "products":[
+      "coffee crisp juniors treat size",
+      "aero s'mores bars",
+      "coffee crisp snack size 25ct box"
+    ]
+  },
+  {
+    "name":"Longo's Liberty Village",
+    "lat":43.6396,
+    "lon":-79.4196,
+    "products":[
+      "aero dark & milk chocolate bar",
+      "coffee crisp (50g)",
+      "aero milk chocolate minis"
+    ]
+  },
+  {
+    "name":"Whole Foods Yorkville",
+    "lat":43.6715,
+    "lon":-79.3884,
+    "products":[
+      "kitkat chunky minis",
+      "kit kat milk chocolate easter bunny",
+      "kitkat chunky rolo, wafer bar"
+    ]
+  },
+  {
+    "name":"Rabba Fine Foods Bloor",
+    "lat":43.6642,
+    "lon":-79.4051,
+    "products":[
+      "kitkat chunky extreme choc, wafer bar",
+      "kitkat mega",
+      "big turk share pack"
+    ]
+  },
+  {
+    "name":"T&T Supermarket",
+    "lat":43.7861,
+    "lon":-79.3492,
+    "products":[
+      "kit kat chunky drumstick",
+      "coffee crisp double double king",
+      "kitkat holiday milk santa pack"
+    ]
+  },
+  {
+    "name":"Loblaws Maple Leaf Gardens",
+    "lat":43.6629,
+    "lon":-79.3786,
+    "products":[
+      "kitkat hazelnut",
+      "kitkat easter break bunny",
+      "aero hide me eggs 100g"
+    ]
+  },
+  {
+    "name":"Metro College Park",
+    "lat":43.6599,
+    "lon":-79.3836,
+    "products":[
+      "assorted minis carton 25 pack",
+      "assorted minis carton 50 pack",
+      "coffee crisp"
+    ]
+  },
+  {
+    "name":"Pusateri\u2019s Fine Foods",
+    "lat":43.7058,
+    "lon":-79.3994,
+    "products":[
+      "big turk bar",
+      "mirage bar",
+      "aero tiramisu milk chocolate bar"
+    ]
+  },
+  {
+    "name":"Bayview Village Loblaws",
+    "lat":43.7652,
+    "lon":-79.386,
+    "products":[
+      "aero milk chocolate bar 4-pack",
+      "after eight dark mint bar",
+      "coffee crisp double double wafer bar"
+    ]
+  },
+  {
+    "name":"Farm Boy Front St",
+    "lat":43.6452,
+    "lon":-79.3801,
+    "products":[
+      "coffee crisp share pack",
+      "kitkat tablet salted caramel",
+      "after eight"
+    ]
+  },
+  {
+    "name":"Shoppers Yonge & Eglinton",
+    "lat":43.7071,
+    "lon":-79.3987,
+    "products":[
+      "aero milk chocolate 3-piece share pack",
+      "nestl\u00e9 kitkat chocolate easter bunny gift pack",
+      "coffee crisp frozen dessert bars"
+    ]
+  },
+  {
+    "name":"Walmart Downsview",
+    "lat":43.7405,
+    "lon":-79.4756,
+    "products":[
+      "after eight classic mint thins",
+      "after eight orange mint thins",
+      "kitkat single bars, frozen dessert"
+    ]
+  },
+  {
+    "name":"No Frills Dufferin Mall",
+    "lat":43.6553,
+    "lon":-79.4413,
+    "products":[
+      "kitkat  4-finger wafer bar, milk chocolate",
+      "aero scoops choco strawberry",
+      "mirage bar 4-pack"
+    ]
+  },
+  {
+    "name":"Sobeys Danforth",
+    "lat":43.6796,
+    "lon":-79.3499,
+    "products":[
+      "kitkat pops with smarties",
+      "nestl\u00e9 crunch pops",
+      "coffee crisp easter hide me chocolate eggs"
+    ]
+  },
+  {
+    "name":"Walmart Mississauga",
+    "lat":43.589,
+    "lon":-79.6441,
+    "products":[
+      "nestl\u00e9 assorted minis carton pack",
+      "aero scoops vanilla bean",
+      "nestl\u00e9 aero truffle brownie 105 g bar"
+    ]
+  },
+  {
+    "name":"Costco Vaughan",
+    "lat":43.804,
+    "lon":-79.5351,
+    "products":[
+      "aero milk chocolate minis pouch (800 g)",
+      "kit kat chunky",
+      "coffee crisp mini wafer bars"
+    ]
+  },
+  {
+    "name":"Loblaws Richmond Hill",
+    "lat":43.8828,
+    "lon":-79.437,
+    "products":[
+      "aero halloween 25ct carton",
+      "kit kat minis pantry size pouch",
+      "assorted minis carton 100 pack"
+    ]
+  },
+  {
+    "name":"No Frills Brampton",
+    "lat":43.6874,
+    "lon":-79.7605,
+    "products":[
+      "assorted hide me eggs",
+      "aero pep 8ct jrs 24 8x7.3 g",
+      "kit kat"
+    ]
+  },
+  {
+    "name":"Shoppers Markham",
+    "lat":43.8561,
+    "lon":-79.337,
+    "products":[
+      "coffee crisp pops\u2122 pouch 170g",
+      "kitkat hockey holidays nhl advent calendar",
+      "aero peppermint milk chocolate minis"
+    ]
+  },
+  {
+    "name":"Metro Oakville",
+    "lat":43.4565,
+    "lon":-79.6895,
+    "products":[
+      "kitkat tablet hazelnut",
+      "aero white bar",
+      "kitkat  valentine minis, milk chocolate, peanut-free"
+    ]
+  },
+  {
+    "name":"Farm Boy Don Mills",
+    "lat":43.7362,
+    "lon":-79.3373,
+    "products":[
+      "kitkat classic tablet",
+      "aero scoops double chocolate",
+      "coffee crisp minis double double pouch"
+    ]
+  },
+  {
+    "name":"Whole Foods Square One",
+    "lat":43.5934,
+    "lon":-79.6435,
+    "products":[
+      "aero mint - peppermint milk chocolate bubble bar",
+      "kitkat holiday santa chimney",
+      "kit kat chunky milk chocolate wafer bar"
+    ]
+  }
+]

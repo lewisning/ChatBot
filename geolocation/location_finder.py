@@ -7,13 +7,9 @@ from urllib.parse import quote_plus
 import json
 from functools import lru_cache
 
-
 # Mock data for stores and products
-mock_stores = [
-    {"name": "Walmart Toronto", "lat": 43.6532, "lon": -79.3832, "products": ["Kit Kat", "Coffee Crisp"]},
-    {"name": "Shoppers Downtown", "lat": 43.6510, "lon": -79.3470, "products": ["Kit Kat", "Aero S'Mores Bars"]},
-    {"name": "Loblaws", "lat": 43.6600, "lon": -79.4000, "products": ["Aero", "After Eight", "Kit Kat"]},
-]
+with open("./rag/mock_stores.json", 'r') as f:
+    mock_stores = json.load(f)
 
 # @lru_cache()
 # def load_brand_keywords():
@@ -36,10 +32,7 @@ mock_stores = [
 
 @lru_cache()
 def load_brand_keywords():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    json_path = os.path.join(base_dir, '../rag/brand_products.json')
-
-    with open(json_path, 'r') as f:
+    with open("./rag/brand_products.json", 'r') as f:
         data = json.load(f)
 
     products_set = set()
@@ -78,6 +71,8 @@ def stores_to_context(store_results, product):
 
 def location_query(question, lon, lat):
     product_keywords, product_to_brand = load_brand_keywords()
+    # print("\n\n\n",product_keywords,"\n\n\n")
+    # print("\n\n\n", product_to_brand, "\n\n\n")
 
     matched_product = next((kw for kw in product_keywords if kw in question), None)
     if not matched_product:
@@ -91,6 +86,9 @@ def location_query(question, lon, lat):
     for store in mock_stores:
         if any(matched_product in p.lower() for p in store["products"]):
             distance = haversine(lat, lon, store["lat"], store["lon"])
+            # For testing use, we assume a maximum distance of 90 km, normally will be 10 km
+            if distance > 90:
+                continue
             results.append({
                 "name": store["name"],
                 "distance_km": round(distance, 2)
@@ -106,8 +104,6 @@ def location_query(question, lon, lat):
         azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
         temperature=0.2
     )
-
-    print(amazon_link)
 
     prompt = [
         SystemMessage(
