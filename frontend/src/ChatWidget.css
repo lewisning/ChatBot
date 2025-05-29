@@ -44,8 +44,8 @@
   right: 20px;
   width: 380px;
   max-width: calc(100vw - 40px);
-  height: 500px;
-  max-height: calc(100vh - 140px);
+  /*height: 500px;*/
+  max-height: calc(100vh - 170px);
   display: flex;
   flex-direction: column;
   background: #ffffff;
@@ -278,13 +278,21 @@
 }
 
 /* Chat body */
+/*.chat-body {*/
+/*  flex: 1;*/
+/*  padding: 1rem;*/
+/*  overflow-y: auto;*/
+/*  background: #fafafa;*/
+/*  min-height: 0;*/
+/*  -webkit-overflow-scrolling: touch;*/
+/*}*/
+
 .chat-body {
-  flex: 1;
   padding: 1rem;
   overflow-y: auto;
   background: #fafafa;
   min-height: 0;
-  -webkit-overflow-scrolling: touch;
+  max-height: calc(100vh - 260px); /* 减去 header 和 footer 的高度 */
 }
 
 .chat-message-block {
@@ -550,8 +558,8 @@
   }
 
   .chat-input-wrapper button img {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
   }
 
   .avatar-popup {
@@ -926,4 +934,43 @@
   .chat-input-wrapper input {
     font-size: 16px; /* Prevents zoom on iOS */
   }
+}
+
+.send-button-wrapper {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.send-button-wrapper img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.send-icon,
+.thinking-icon {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.visible {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
+}
+
+.hidden {
+  opacity: 0;
+  transform: scale(0.95);
+  z-index: 1;
+}
+
+@keyframes spin {
+  from { transform: scale(1) rotate(0deg); }
+  to   { transform: scale(1) rotate(360deg); }
 }

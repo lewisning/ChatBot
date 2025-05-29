@@ -23,6 +23,7 @@ function ChatWidget() {
     const saved = localStorage.getItem('chatLog');
     return saved ? JSON.parse(saved) : [];
   });
+  const [isThinking, setIsThinking] = useState(false);
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
@@ -75,7 +76,9 @@ function ChatWidget() {
   const toggleChat = () => setIsOpen(!isOpen);
 
   const sendMessage = async () => {
-    if (!message.trim()) return;
+    if (!message.trim() || isThinking) return;
+
+    setIsThinking(true);
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage = { sender: 'user', text: message, time: now };
@@ -103,8 +106,8 @@ function ChatWidget() {
         })
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -124,6 +127,8 @@ function ChatWidget() {
         newLog[newLog.length - 1] = errorMessage;
         return newLog;
       });
+    } finally {
+      setIsThinking(false);
     }
   };
 
@@ -242,8 +247,17 @@ function ChatWidget() {
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
                     placeholder="Ask me anything..."
                   />
-                  <button onClick={sendMessage}>
-                    <img src="/send-icon.png" alt="Send" />
+                  <button onClick={sendMessage} disabled={isThinking} className="send-button-wrapper">
+                    <img
+                      src="/send-icon.png"
+                      alt="Send"
+                      className={`send-icon ${isThinking ? 'hidden' : 'visible'}`}
+                    />
+                    <img
+                      src="/loading.gif"
+                      alt="Thinking"
+                      className={`thinking-icon ${isThinking ? 'visible' : 'hidden'}`}
+                    />
                   </button>
                 </div>
               </div>
