@@ -104,7 +104,7 @@ def location_query(question, lon, lat):
         api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
         azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-        temperature=0
+        temperature=0.2
     )
 
     print(amazon_link)
