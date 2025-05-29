@@ -24,6 +24,8 @@ function ChatWidget() {
     return saved ? JSON.parse(saved) : [];
   });
   const [isThinking, setIsThinking] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
@@ -60,32 +62,43 @@ function ChatWidget() {
     localStorage.setItem('chatLog', JSON.stringify(chatLog));
   }, [chatLog]);
 
-  useEffect(() => {
-    if (isOpen) {
-      const welcome = {
-        sender: 'bot',
-        text: `Hi I'm ${userInfo.name}! Your personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      if (chatLog.length === 0) {
-        setChatLog([welcome]);
-      }
-    }
-  }, [isOpen, userInfo.name, chatLog.length]);
+  // useEffect(() => {
+  //   if (isOpen) {
+  //     const welcome = {
+  //       sender: 'bot',
+  //       text: `Hi I'm ${userInfo.name}! Your personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
+  //       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  //     };
+  //     if (chatLog.length === 0) {
+  //       setChatLog([welcome]);
+  //     }
+  //   }
+  // }, [isOpen, userInfo.name, chatLog.length]);
 
   const toggleChat = () => setIsOpen(!isOpen);
 
   const sendMessage = async () => {
     if (!message.trim() || isThinking) return;
+    if (showWelcome) {
+      setIsFadingOut(true);
+      setTimeout(() => {
+        setShowWelcome(false);
+        setIsFadingOut(false);
+      }, 550);
+    }
 
     setIsThinking(true);
 
     const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const userMessage = { sender: 'user', text: message, time: now };
-    setChatLog(prev => [...prev, userMessage]);
+    const messageDelay = showWelcome ? 500 : 0;
+    setTimeout(() => {
+      setChatLog(prev => [...prev, userMessage]);
 
-    const thinkingMessage = { sender: 'bot', text: 'Thinking...', time: now };
-    setChatLog(prev => [...prev, thinkingMessage]);
+      const thinkingMessage = { sender: 'bot', text: 'Thinking...', time: now };
+      setChatLog(prev => [...prev, thinkingMessage]);
+    }, messageDelay);
+
     setMessage('');
 
     try {
@@ -106,8 +119,8 @@ function ChatWidget() {
         })
       };
 
-      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      const res = await axios.post("http://localhost:8000/chat/", payload);
+      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      // const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -162,81 +175,114 @@ function ChatWidget() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
             transition={{ duration: 0.3 }}
+            layout
+            layoutScroll
           >
-            <div className={`chat-content ${showAvatarPopup ? 'chat-blurred' : ''}`}>
-              <div className="chat-header">
-                <img
-                  src={userInfo.avatar}
-                  className="user-avatar"
-                  alt="avatar"
-                  onClick={() => setShowAvatarPopup(true)}
-                  title="Click to change avatar"
-                />
-                {isEditingName ? (
-                  <input
-                    type="text"
-                    value={userInfo.name}
-                    onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
-                    onBlur={() => setIsEditingName(false)}
-                    onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
-                    className="username-input"
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className="username"
-                    onDoubleClick={() => setIsEditingName(true)}
-                    title="Double click to edit"
-                  >
-                    {userInfo.name}
-                  </span>
-                )}
-                <button onClick={toggleChat} className="chat-close-button">
-                  <img src="/close.png" alt="Close" className="chat-close-icon" />
-                </button>
-              </div>
+            <motion.div className={`chat-content ${showAvatarPopup ? 'chat-blurred' : ''}`} layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
+              <motion.div className="chat-window" layout>
+                <AnimatePresence mode="wait">
+                  {showWelcome ? (
+                    <motion.div
+                      key="welcome"
+                      className="welcome-container"
+                      initial={{ opacity: 1, y: 0, scale: 1 }}
+                      animate={isFadingOut ? { opacity: 0, y: -40, scale: 0.96 } : { opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -40, scale: 0.96 }}
+                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                      <img src={userInfo.avatar} alt="avatar" className="welcome-avatar" />
+                      <div className="welcome-text">
+                        Hi I'm {userInfo.name}!<br />
+                        Your personal MadeWithNestle assistant.<br />
+                        Ask me anything, and I'll try my best to help!
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div
+                      key="header"
+                      className="chat-fade-wrapper fade-chat"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -30 }}
+                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                    >
+                      <motion.div className="chat-header" layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
+                        <img
+                          src={userInfo.avatar}
+                          className="user-avatar"
+                          alt="avatar"
+                          onClick={() => setShowAvatarPopup(true)}
+                          title="Click to change avatar"
+                        />
+                        {isEditingName ? (
+                          <input
+                            type="text"
+                            value={userInfo.name}
+                            onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
+                            onBlur={() => setIsEditingName(false)}
+                            onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                            className="username-input"
+                            autoFocus
+                          />
+                        ) : (
+                          <span
+                            className="username"
+                            onDoubleClick={() => setIsEditingName(true)}
+                            title="Double click to edit"
+                          >
+                            {userInfo.name}
+                          </span>
+                        )}
+                        <button onClick={toggleChat} className="chat-close-button">
+                          <img src="/close.png" alt="Close" className="chat-close-icon" />
+                        </button>
+                      </motion.div>
 
-              <div className="chat-body">
-                {chatLog.map((msg, idx) => (
-                  <div key={idx} className={`chat-message-block ${msg.sender}`}>
-                    <div className="chat-message-row">
-                      <div className="chat-bubble">
-                        <div className="chat-text">
-                          <ReactMarkdown
-                            components={{
-                              a: ({ node, ...props }) => (
-                                <a {...props} target="_blank" rel="noopener noreferrer">
-                                  {props.children}
-                                </a>
-                              ),
-                            }}
-                          >
-                            {msg.text}
-                          </ReactMarkdown>
-                        </div>
-                        <div className="chat-time">{msg.time}</div>
-                      </div>
-                    </div>
-                    {msg.refs && msg.refs.length > 0 && (
-                      <div className="chat-references">
-                        <strong>References:</strong>
-                        {msg.refs.map(ref => (
-                          <a
-                            key={ref.number}
-                            href={ref.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="ref-button"
-                          >
-                            [{ref.number}]
-                          </a>
+                      <motion.div className="chat-body" layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
+                        {chatLog.map((msg, idx) => (
+                          <div key={idx} className={`chat-message-block ${msg.sender}`}>
+                            <div className="chat-message-row">
+                              <div className="chat-bubble">
+                                <div className="chat-text">
+                                  <ReactMarkdown
+                                    components={{
+                                      a: ({ node, ...props }) => (
+                                        <a {...props} target="_blank" rel="noopener noreferrer">
+                                          {props.children}
+                                        </a>
+                                      ),
+                                    }}
+                                  >
+                                    {msg.text}
+                                  </ReactMarkdown>
+                                </div>
+                                <div className="chat-time">{msg.time}</div>
+                              </div>
+                            </div>
+                            {msg.refs && msg.refs.length > 0 && (
+                              <div className="chat-references">
+                                <strong>References:</strong>
+                                {msg.refs.map(ref => (
+                                  <a
+                                    key={ref.number}
+                                    href={ref.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ref-button"
+                                  >
+                                    [{ref.number}]
+                                  </a>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={bottomRef} />
-              </div>
+                        <div ref={bottomRef} />
+                      </motion.div>
+                    </div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
 
               <div className="chat-footer">
                 <div className="chat-input-wrapper">
@@ -261,7 +307,7 @@ function ChatWidget() {
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {showAvatarPopup && (
               <div className="avatar-overlay-inside" onClick={() => setShowAvatarPopup(false)}>

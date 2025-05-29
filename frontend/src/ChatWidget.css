@@ -1,5 +1,9 @@
 /* Mobile-first responsive design fixes */
 
+body, .chat-popup, .chat-content {
+  font-family: 'Source Sans Pro',  'Helvetica Neue', Helvetica, sans-serif;
+}
+
 .chat-container {
   position: fixed;
   bottom: 20px;
@@ -62,6 +66,7 @@
   height: 100%;
   min-height: 0;
   transition: filter 0.3s ease;
+  overflow: hidden;
 }
 
 /* Header */
@@ -278,21 +283,15 @@
 }
 
 /* Chat body */
-/*.chat-body {*/
-/*  flex: 1;*/
-/*  padding: 1rem;*/
-/*  overflow-y: auto;*/
-/*  background: #fafafa;*/
-/*  min-height: 0;*/
-/*  -webkit-overflow-scrolling: touch;*/
-/*}*/
-
 .chat-body {
   padding: 1rem;
   overflow-y: auto;
-  background: #fafafa;
+  background: #fff;
   min-height: 0;
-  max-height: calc(100vh - 260px); /* 减去 header 和 footer 的高度 */
+  max-height: calc(100vh - 350px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .chat-message-block {
@@ -331,7 +330,7 @@
 }
 
 .chat-text {
-  white-space: pre-wrap;
+  /*white-space: pre-wrap;*/
   word-wrap: break-word;
 }
 
@@ -627,8 +626,8 @@
 
   .chat-body {
     padding: 1rem;
-    /* Add bottom padding to prevent overlap with input */
-    padding-bottom: 100px;
+    padding-bottom: 120px;
+    max-height: calc(100vh - 200px);
   }
 
   .chat-message-row {
@@ -974,3 +973,64 @@
   from { transform: scale(1) rotate(0deg); }
   to   { transform: scale(1) rotate(360deg); }
 }
+
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.chat-window {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.welcome-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  object-fit: cover;
+}
+
+.welcome-text {
+  font-size: 16px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.chat-fade-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.fade-welcome,
+.fade-chat {
+}
+
+.send-icon,
+.thinking-icon {
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.visible {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
+}
+
+.hidden {
+  opacity: 0;
+  transform: scale(0.95);
+  z-index: 1;
+}
+
+
