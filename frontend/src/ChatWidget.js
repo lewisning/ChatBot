@@ -116,11 +116,12 @@ function ChatWidget() {
         ...(coords && {
           latitude: coords.latitude,
           longitude: coords.longitude
-        })
+        }),
+        chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -244,17 +245,21 @@ function ChatWidget() {
                             <div className="chat-message-row">
                               <div className="chat-bubble">
                                 <div className="chat-text">
-                                  <ReactMarkdown
-                                    components={{
-                                      a: ({ node, ...props }) => (
-                                        <a {...props} target="_blank" rel="noopener noreferrer">
-                                          {props.children}
-                                        </a>
-                                      ),
-                                    }}
-                                  >
-                                    {msg.text}
-                                  </ReactMarkdown>
+                                  {msg.text === 'Thinking...' ? (
+                                    <div className="breathing-indicator">Thinking...</div>
+                                  ) : (
+                                    <ReactMarkdown
+                                      components={{
+                                        a: ({ node, ...props }) => (
+                                          <a {...props} target="_blank" rel="noopener noreferrer">
+                                            {props.children}
+                                          </a>
+                                        ),
+                                      }}
+                                    >
+                                      {msg.text}
+                                    </ReactMarkdown>
+                                  )}
                                 </div>
                                 <div className="chat-time">{msg.time}</div>
                               </div>

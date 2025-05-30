@@ -13,6 +13,9 @@ def rag_ask_view(request):
     name = request.data.get("name")
     lat = request.data.get('latitude')
     lon = request.data.get('longitude')
+    chat_history = request.data.get("chat_history", [])
+
+    print("[DEBUG] history:", chat_history)
 
     if not question:
         return Response({"error": "Missing question"}, status=status.HTTP_400_BAD_REQUEST)
@@ -21,15 +24,15 @@ def rag_ask_view(request):
         option = question_classifier(question)
         # Find store locator and provide Amazon link
         if option == "store":
-            answer = location_query(question, float(lon), float(lat))
+            answer = location_query(question, float(lon), float(lat), chat_history)
             return answer
         # If the question is about nutrition facts or how many/much of a specific nutrition (GraphRAG)
         elif option == "graphrag":
-            answer = grag_view(question)
+            answer = grag_view(question, chat_history)
             return answer
         # If the question is about a specific product or brand (LangChain RAG)
         else:
-            answer = query_with_langchain_rag(question, chatbot_name=name)
+            answer = query_with_langchain_rag(question, chatbot_name=name, chat_history=chat_history)
             return Response(answer)
     except Exception as e:
         print("[ERROR]", e)

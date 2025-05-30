@@ -1,4 +1,4 @@
-from langchain.chains.llm import LLMChain
+from langchain.chains import LLMChain
 from langchain.vectorstores import FAISS
 from langchain_openai import AzureOpenAIEmbeddings
 from langchain.chat_models import AzureChatOpenAI
@@ -120,7 +120,7 @@ class ProductLinkManager:
         corrected_response = re.sub(link_pattern, replace_link, response_text)
         return corrected_response
 
-def query_with_langchain_rag(question, chatbot_name, validate_links=True):
+def query_with_langchain_rag(question, chatbot_name, chat_history, validate_links=True):
     # 0. Initialize the link manager if link validation is enabled
     link_manager = ProductLinkManager() if validate_links else None
 
@@ -134,9 +134,16 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
     # 2. Load the FAISS index
     vectorstore = FAISS.load_local("rag/faiss_index", embedding, allow_dangerous_deserialization=True)
 
+    history_lines = []
+    for msg in chat_history[-6:]:
+        role = "User" if msg["sender"] == "user" else "Assistant"
+        history_lines.append(f"{role}: {msg['text']}")
+
+    history_str = "\\n".join(history_lines)
+
     # 3. Construct the LLM with enhanced prompt template
     prompt_template = PromptTemplate(
-        input_variables=["context", "question", "chatbot_name"],
+        input_variables=["context", "question", "history", "chatbot_name"],
         template="""
                     Your home website is https://www.madewithnestle.ca/ and you must only use the provided context to answer the question no matter the question contains keywords such as "nestle".
 
@@ -145,18 +152,32 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
                     Be concise, factual, and in English. **Do not say 'based on the context'**.
                     Only use content that is clearly relevant to the question.
                     Ignore irrelevant products or content even if they are nearby in the context.
+                    
+                    Generate a helpful, friendly and rich response for the user including:
+                    - A well-written description of the product (tone: warm and informative)
+                    - Mention 2-3 features
+                    - A usage suggestion (e.g. when or who might enjoy this product)
+                    - A follow-up question asking if the user would like to know more (e.g. nutrition details, nearby stores, similar products, etc.)
+                    
+                    
+                    Respond conversationally, like a real chat.
 
                     IMPORTANT: When providing product links, you MUST use the EXACT URL provided in the context for each product. Do not modify or generate URLs.
 
                     MUST FOLLOW THE INSTRUCTIONS BELOW:
-                    1. Add "you can visit following links:" before you provide the link.
-                    2. If the answer contains **product (brand) recommendations**, show each product as a markdown hyperlink like [**Product (Brand) Name**](EXACT_URL_FROM_CONTEXT)
+                    1. Add "you can visit links:" before you provide the link.
+                    2. If the answer contains product (brand) recommendations, show each product as a markdown hyperlink like [**Product (Brand) Name**](EXACT_URL_FROM_CONTEXT)
                     3. Use markdown formatting for links and bulleted lists where appropriate.
+                    4. Ask for clarification if the question is ambiguous or too broad.
+                    5. Do not hallucinate.
+                    
+                    Previous Conversation:
+                    {history}
 
                     context: {context},
                     question: {question}
 
-                  """.replace("{chatbot_name}", chatbot_name),
+                  """.replace("{chatbot_name}", chatbot_name).replace("{history}", history_str)
     )
 
     llm = AzureChatOpenAI(
@@ -165,7 +186,7 @@ def query_with_langchain_rag(question, chatbot_name, validate_links=True):
         api_version=AZURE_OPENAI_VERSION,
         azure_endpoint=AZURE_OPENAI_ENDPOINT,
         azure_deployment=AZURE_OPENAI_MODEL_DEPLOYMENT,
-        temperature=0.2
+        temperature=0.3
     )
 
     # 4. Encapsulate the LLM and vectorstore in a RetrievalQA chain

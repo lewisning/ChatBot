@@ -1,7 +1,8 @@
 /* Mobile-first responsive design fixes */
 
-body, .chat-popup, .chat-content {
+body, .chat-popup, .chat-content .chat-bubble .chat-footer {
   font-family: 'Source Sans Pro',  'Helvetica Neue', Helvetica, sans-serif;
+  font-size: 14px;
 }
 
 .chat-container {
@@ -314,10 +315,9 @@ body, .chat-popup, .chat-content {
 }
 
 .chat-bubble {
-  background: #e0e0e0;
+  background: rgb(243, 239, 235);
   border-radius: 1rem;
   padding: 0.75rem 1rem;
-  font-size: 0.95rem;
   line-height: 1.4;
   position: relative;
   word-wrap: break-word;
@@ -326,12 +326,18 @@ body, .chat-popup, .chat-content {
 }
 
 .chat-message-block.user .chat-bubble {
-  background: #d1eaff;
+  background: rgb(216, 238, 207);
 }
 
 .chat-text {
   /*white-space: pre-wrap;*/
   word-wrap: break-word;
+}
+
+.chat-text a {
+  /*white-space: pre-wrap;*/
+  color: rgb(96, 82, 64);
+  text-decoration: underline;
 }
 
 .chat-time {
@@ -1032,5 +1038,19 @@ body, .chat-popup, .chat-content {
   transform: scale(0.95);
   z-index: 1;
 }
+
+.breathing-indicator {
+  display: inline-block;
+  font-weight: bold;
+  color: #605240;
+  animation: breathing 1.6s ease-in-out infinite;
+}
+
+@keyframes breathing {
+  0%   { opacity: 0.3; transform: scale(1); }
+  50%  { opacity: 1;   transform: scale(1.05); }
+  100% { opacity: 0.3; transform: scale(1); }
+}
+
 
 

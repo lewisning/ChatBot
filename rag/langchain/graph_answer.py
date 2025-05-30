@@ -7,69 +7,80 @@ from dotenv import load_dotenv
 
 # Initialize Azure OpenAI
 load_dotenv()
-llm = AzureChatOpenAI(
-    openai_api_type="azure",
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
-    temperature=0
-)
 
-# Neo4j Graph Configuration
-graph = Neo4jGraph(
-    url=os.getenv("NEO4J_URI"),
-    username=os.getenv("NEO4J_USERNAME"),
-    password=os.getenv("NEO4J_PASSWORD")
-)
-
-# GraphCypherQAChain Configuration with custom prompt
-graph_chain = GraphCypherQAChain.from_llm(
-    llm=llm,
-    graph=graph,
-    verbose=True,
-    allow_dangerous_requests=True,
-    return_intermediate_steps=True,
-    cypher_prompt_template="""
-                            You are a Cypher expert. Only generate READ-ONLY Cypher queries.
-                        
-                            Schema:
-                            (:Brand)-[:OWNS]->(:Product {name, specification, category, url, status})
-                            (:Product)-[:HAS_NUTRITION]->(:Nutrition {unit, daily_percent, name, value})
-                            (:Product)-[:HAS_FEATURE]->(:Feature {name})
-                            (:Product)-[:HAS_INGREDIENT]->(:Ingredient {name})
-                        
-                            IMPORTANT INSTRUCTIONS:
-                            - All nutrition names are capitalized. For example: 'Calories', 'Fat', 'Protein', 'Sodium'.
-                            - Always use lowercase for all nutrition field values in MATCH and WHERE clauses. For example:
-                              `MATCH (n:Nutrition {name: "calories"})`
-                              Do NOT use: `name: "calories"` (lowercase for nutrition names).
-                            - If the answer contains **product recommendations**, show each product as a markdown hyperlink like [**Product Name**](url of each product name from the context provided).
-                        
-                            Query examples:
-                            Example 1:
-                            MATCH (p:Product)-[:HAS_NUTRITION]->(n:Nutrition {name: "calories"})
-                            RETURN p.name, n.value
-                        
-                            Example 2:
-                            MATCH (p:Product)-[:HAS_NUTRITION]->(n:Nutrition)
-                            WHERE n.name = "protein"
-                            RETURN p.name, n.value
-                        
-                            You can use `CALL db.schema.visualization()` to inspect schema.
-                        
-                            DO NOT use CREATE, DELETE, or MERGE. Only use READ-ONLY queries.
-                            
-                            Your home website is https://www.madewithnestle.ca/ and you must only use the provided context to answer the question no matter the question contains keywords such as "nestle".
-                    
-                            Do not rely on your own knowledge or assumptions.
-                            If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
-                            """
-)
-
-def grag_view(question):
+def grag_view(question, chat_history):
     if not question:
         return Response({"error": "Missing question."}, status=400)
+
+    llm = AzureChatOpenAI(
+        openai_api_type="azure",
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+        temperature=0.5
+    )
+
+    # Neo4j Graph Configuration
+    graph = Neo4jGraph(
+        url=os.getenv("NEO4J_URI"),
+        username=os.getenv("NEO4J_USERNAME"),
+        password=os.getenv("NEO4J_PASSWORD")
+    )
+
+    # GraphCypherQAChain Configuration with custom prompt
+    graph_chain = GraphCypherQAChain.from_llm(
+        llm=llm,
+        graph=graph,
+        verbose=True,
+        allow_dangerous_requests=True,
+        return_intermediate_steps=True,
+        cypher_prompt_template="""
+                                You are a Cypher expert. Only generate READ-ONLY Cypher queries.
+
+                                Schema:
+                                (:Brand)-[:OWNS]->(:Product {name, specification, category, url, status})
+                                (:Product)-[:HAS_NUTRITION]->(:Nutrition {unit, daily_percent, name, value})
+                                (:Product)-[:HAS_FEATURE]->(:Feature {name})
+                                (:Product)-[:HAS_INGREDIENT]->(:Ingredient {name})
+
+                                IMPORTANT INSTRUCTIONS:
+                                - All nutrition names are capitalized. For example: 'Calories', 'Fat', 'Protein', 'Sodium'.
+                                - Always use lowercase for all nutrition field values in MATCH and WHERE clauses. For example:
+                                  `MATCH (n:Nutrition {name: "calories"})`
+                                  Do NOT use: `name: "calories"` (lowercase for nutrition names).
+                                - If the answer contains **product recommendations**, show each product as a markdown hyperlink like [**Product Name**](url of each product name from the context provided).
+
+                                Query examples:
+                                Example 1:
+                                MATCH (p:Product)-[:HAS_NUTRITION]->(n:Nutrition {name: "calories"})
+                                RETURN p.name, n.value
+
+                                Example 2:
+                                MATCH (p:Product)-[:HAS_NUTRITION]->(n:Nutrition)
+                                WHERE n.name = "protein"
+                                RETURN p.name, n.value
+
+                                You can use `CALL db.schema.visualization()` to inspect schema.
+
+                                DO NOT use CREATE, DELETE, or MERGE. Only use READ-ONLY queries.
+
+                                Your home website is https://www.madewithnestle.ca/ and you must only use the provided context to answer the question no matter the question contains keywords such as "nestle".
+
+                                Do not rely on your own knowledge or assumptions.
+                                If the user asks for your name, respond with: "My name is {chatbot_name}, I'm your personal MadeWithNestle assistant."
+
+                                After you run the query and get the result, MUST FOLLOW THE INSTRUCTIONS BELOW:
+                                - Generate a helpful, friendly and RICH response for the user
+                                - A well-written description of the product (tone: warm and informative)
+                                - Mention 2-3 features
+                                - A usage suggestion (e.g. when or who might enjoy this product)
+                                - A follow-up question asking if the user would like to know more (e.g. nutrition details, nearby stores, similar products, etc.)
+
+
+                                Respond conversationally, like a real chat.
+                                """
+    )
 
     # Query with GraphRAG
     try:

@@ -47,7 +47,7 @@ def product_match(question, product_keywords):
     if norm_ans in valid_choices:
         # Return the original product name from the list
         idx = valid_choices.index(norm_ans)
-        return product_keywords[idx]
+        return [product_keywords[idx]]
     return None
 
 
