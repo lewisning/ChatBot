@@ -32,7 +32,7 @@ function ChatWidget() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [audioLevel, setAudioLevel] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [, setIsPlaying] = useState(false);
   const [currentPlayingIndex, setCurrentPlayingIndex] = useState(null);
 
   const recognitionRef = useRef(null);
@@ -80,6 +80,44 @@ function ChatWidget() {
     }
   }, [cleanupMediaStream]);
 
+  const speakText = useCallback((text, messageIndex) => {
+    if (synthRef.current) {
+      // Always cancel any current speech before starting new one
+      synthRef.current.cancel();
+
+      const cleanText = text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/#+\s/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`(.*?)`/g, '$1');
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 0.8;
+
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setCurrentPlayingIndex(messageIndex);
+      };
+
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+      };
+
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+      };
+
+      synthRef.current.speak(utterance);
+    }
+  }, []);
+
   const handleVoiceSend = useCallback(async (voiceMessage) => {
     if (!voiceMessage.trim() || isThinking) return;
 
@@ -121,8 +159,8 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -153,7 +191,7 @@ function ChatWidget() {
     } finally {
       setIsThinking(false);
     }
-  }, [isThinking, showWelcome, userInfo.name, chatLog]);
+  }, [isThinking, showWelcome, userInfo.name, chatLog, speakText]);
 
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -223,7 +261,7 @@ function ChatWidget() {
       }
       cleanupMediaStream();
     };
-  }, [handleVoiceSend, stopListening, cleanupMediaStream]);
+  }, [handleVoiceSend, stopListening, cleanupMediaStream, closeAudioContext]);
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
@@ -324,54 +362,13 @@ function ChatWidget() {
     }
   };
 
-  const speakText = (text, messageIndex) => {
-    if (synthRef.current) {
-      if (isPlaying) {
-        synthRef.current.cancel();
-        setIsPlaying(false);
-        setCurrentPlayingIndex(null);
-      }
-
-      const cleanText = text
-        .replace(/\*\*(.*?)\*\*/g, '$1')
-        .replace(/\*(.*?)\*/g, '$1')
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-        .replace(/#+\s/g, '')
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/`(.*?)`/g, '$1');
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
-
-      utterance.onstart = () => {
-        setIsPlaying(true);
-        setCurrentPlayingIndex(messageIndex);
-      };
-
-      utterance.onend = () => {
-        setIsPlaying(false);
-        setCurrentPlayingIndex(null);
-      };
-
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setCurrentPlayingIndex(null);
-      };
-
-      synthRef.current.speak(utterance);
-    }
-  };
-
-  const stopSpeaking = () => {
+  const stopSpeaking = useCallback(() => {
     if (synthRef.current) {
       synthRef.current.cancel();
       setIsPlaying(false);
       setCurrentPlayingIndex(null);
     }
-  };
+  }, []);
 
   const toggleChat = () => setIsOpen(!isOpen);
 
@@ -419,8 +416,8 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
