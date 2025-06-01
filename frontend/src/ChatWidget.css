@@ -1052,5 +1052,37 @@ body, .chat-popup, .chat-content .chat-bubble .chat-footer {
   100% { opacity: 0.3; transform: scale(1); }
 }
 
+.markdown-body {
+  line-height: 1.6;
+  font-size: 15px;
+  color: #333;
+}
+
+.markdown-body ul {
+  padding-left: 20px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.markdown-body li {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding-left: 8px;
+}
+
+.markdown-body p {
+  margin: 8px 0;
+}
+
+.markdown-body strong {
+  font-weight: 600;
+}
+
+.markdown-body img {
+  display: block;
+  margin: 12px auto;
+  max-width: 80%;
+  border-radius: 8px;
+}
 
 

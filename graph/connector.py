@@ -21,8 +21,8 @@ class GraphConnector:
         with self.driver.session() as session:
             meta = chunk["metadata"]
             chunk_type = meta.get("chunk_type", "")
-            brand = meta.get("brand")
-            product = meta.get("product_name", "")
+            brand = meta.get("brand").lower() if meta.get("brand") else ""
+            product = meta.get("product_name").lower() if meta.get("product_name") else ""
             brand_url = meta.get("brand_url", "")
             product_url = meta.get("product_url", "")
 
@@ -51,8 +51,8 @@ class GraphConnector:
                     """,
                     brand=brand,
                     product=product,
-                    category=meta.get("category", ""),
-                    status=meta.get("status", "")
+                    category=meta.get("category").lower() if meta.get("category") else "",
+                    status=meta.get("status").lower() if meta.get("status") else "regular product"
                 )
 
             # === Node 3: Product Description ===
@@ -64,13 +64,13 @@ class GraphConnector:
                         p.url = $product_url
                     """,
                     product=product,
-                    specification=meta.get("specification", ""),
+                    specification=meta.get("specification").lower() if meta.get("specification") else "",
                     product_url=product_url
                 )
 
             # === Node 4: Nutrition ===
             elif chunk_type == "nutrition":
-                nutrition_name = meta.get("field")
+                nutrition_name = meta.get("field").lower() if meta.get("field") else ""
                 value = meta.get("amount", "").strip()
                 dv = meta.get("dv", "").strip()
 
@@ -94,7 +94,7 @@ class GraphConnector:
 
             # === Node 5: Product Features ===
             elif chunk_type == "features":
-                feature = meta.get("field", "")
+                feature = meta.get("field").lower() if meta.get("field") else ""
                 if feature:
                     session.run(
                         """
@@ -108,7 +108,7 @@ class GraphConnector:
 
             # === Node 6: Product Ingredients ===
             elif chunk_type == "ingredients":
-                ingredient = meta.get("field", "")
+                ingredient = meta.get("field").lower() if meta.get("field") else ""
                 if ingredient:
                     session.run(
                         """
@@ -122,7 +122,7 @@ class GraphConnector:
 
             # === Node 7: Category ===
             elif chunk_type == "category":
-                category = meta.get("field").lower()
+                category = meta.get("field").lower() if meta.get("field") else ""
                 if category:
                     session.run(
                         """

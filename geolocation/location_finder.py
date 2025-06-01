@@ -43,7 +43,7 @@ def extract_latest_product_from_history(chat_history):
             if matches:
                 for name in matches:
                     product = name.split("(")[0].strip()
-                    products.add(product.lower())  # 用小写防止匹配问题
+                    products.add(product.lower())
             matches_bold = re.findall(r"\*\*(.*?)\*\*", text)
             if matches_bold:
                 for name in matches_bold:
@@ -78,7 +78,7 @@ def location_query(question, lon, lat, chat_history):
     if not matched_product:
         matched_product = extract_latest_product_from_history(chat_history)
 
-    print("HISTORY:", chat_history)
+    print("HISTORY:", chat_history[-1] if chat_history else "No history")
     print("MATCHED:", matched_product)
 
     if not matched_product:
@@ -144,7 +144,7 @@ def location_query(question, lon, lat, chat_history):
                     - A usage suggestion (e.g. when or who might enjoy this product)
                     - A follow-up question asking if the user would like to know more (e.g. nutrition details, nearby stores, similar products, etc.)
                     
-                    Respond conversationally, like a real chat.
+                    Respond conversationally, like a real chat, you can also use appropriate emoji in the response.
                     
                     context:
                     Available stores:\n{store_info}

@@ -27,9 +27,9 @@ def rag_ask_view(request):
             answer = location_query(question, float(lon), float(lat), chat_history)
             return answer
         # If the question is about nutrition facts or how many/much of a specific nutrition (GraphRAG)
-        # elif option == "graphrag":
-        #     answer = grag_view(question, chat_history)
-        #     return answer
+        elif option == "graphrag":
+            answer = grag_view(question, chat_history)
+            return answer
         # If the question is about a specific product or brand (LangChain RAG)
         else:
             answer = query_with_langchain_rag(question, chatbot_name=name, chat_history=chat_history)

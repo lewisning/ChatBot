@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import './ChatWidget.css';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -26,6 +26,12 @@ function ChatWidget() {
   const [isThinking, setIsThinking] = useState(false);
   const [showWelcome, setShowWelcome] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
+  const [displayedText, setDisplayedText] = useState('');
+  const fullWelcomeText = useMemo(() =>
+    `Hi I'm ${userInfo.name}!\nYour personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
+    [userInfo.name]
+  );
+
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
@@ -49,10 +55,37 @@ function ChatWidget() {
   }, [isOpen]);
 
   useEffect(() => {
-    if (bottomRef.current) {
-      bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (isOpen && showWelcome) {
+      setDisplayedText('');
+      let index = 0;
+      let active = true;
+
+      const typeLetter = () => {
+        if (!active) return;
+        if (index <= fullWelcomeText.length) {
+          setDisplayedText(fullWelcomeText.slice(0, index));
+          index++;
+          setTimeout(typeLetter, 15);
+        }
+      };
+
+      typeLetter();
+
+      return () => {
+        active = false;
+      };
     }
+  }, [isOpen, showWelcome, fullWelcomeText]);
+
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      if (bottomRef.current) {
+        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
   }, [chatLog]);
+
 
   useEffect(() => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
@@ -193,9 +226,9 @@ function ChatWidget() {
                     >
                       <img src={userInfo.avatar} alt="avatar" className="welcome-avatar" />
                       <div className="welcome-text">
-                        Hi I'm {userInfo.name}!<br />
-                        Your personal MadeWithNestle assistant.<br />
-                        Ask me anything, and I'll try my best to help!
+                        {displayedText.split('\n').map((line, idx) => (
+                          <div key={idx}>{line}</div>
+                        ))}
                       </div>
                     </motion.div>
                   ) : (
@@ -248,17 +281,32 @@ function ChatWidget() {
                                   {msg.text === 'Thinking...' ? (
                                     <div className="breathing-indicator">Thinking...</div>
                                   ) : (
-                                    <ReactMarkdown
-                                      components={{
-                                        a: ({ node, ...props }) => (
-                                          <a {...props} target="_blank" rel="noopener noreferrer">
-                                            {props.children}
-                                          </a>
-                                        ),
-                                      }}
-                                    >
-                                      {msg.text}
-                                    </ReactMarkdown>
+                                    <div className="markdown-body">
+                                      <ReactMarkdown
+                                        components={{
+                                          a: ({ node, ...props }) => (
+                                            <a {...props} target="_blank" rel="noopener noreferrer">
+                                              {props.children}
+                                            </a>
+                                          ),
+                                          img: ({ node, ...props }) => (
+                                            <img
+                                              {...props}
+                                              alt={props.alt}
+                                              style={{
+                                                display: 'block',
+                                                margin: '12px auto',
+                                                maxWidth: '80%',
+                                                height: 'auto',
+                                                borderRadius: '8px'
+                                              }}
+                                            />
+                                          )
+                                        }}
+                                      >
+                                        {msg.text}
+                                      </ReactMarkdown>
+                                    </div>
                                   )}
                                 </div>
                                 <div className="chat-time">{msg.time}</div>

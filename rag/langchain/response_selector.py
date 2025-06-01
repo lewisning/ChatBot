@@ -15,8 +15,8 @@ deployment_name = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
 def question_classifier(question):
     system_prompt = """You are a smart assistant that classifies user questions into one of three categories:
                         1. "store" - if the question is about finding where to buy a product or locating nearby stores.
-                        2. "graphrag" - if the question is about structured product information like nutrition facts, features, category, ingredients, or asking 'how many'/'how much'.
-                        3. "rag" - if the question is general, like asking about a product's description or brand info.
+                        2. "graphrag" - if the question is about structured product information like nutrition facts, 'how many'/'how much'.
+                        3. "rag" - if the question is general, features, category, ingredients, or asking about a product's description or brand info.
 
                         Respond ONLY with one of the following exact words: "store", "graphrag", or "rag".
                     """

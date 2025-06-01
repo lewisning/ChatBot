@@ -7,6 +7,7 @@ from langchain.prompts import PromptTemplate
 from urllib.parse import quote_plus
 import json
 import re
+from collections import defaultdict
 from typing import Dict, List, Tuple
 
 # === Azure OpenAI Configure ===
@@ -23,11 +24,144 @@ AZURE_OPENAI_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 
 
 class ProductLinkManager:
-    def __init__(self, chunks_json_path="rag/chunks.json"):
+    def __init__(self, chunks_json_path="rag/chunks.json", product_info_path="rag/brand_products.json"):
         self.chunks_json_path = chunks_json_path
+        self.product_info_path = product_info_path
         self.product_links = {}
         self.brand_links = {}
+        self.image_map = {}
         self._load_links()
+        self._load_images()
+
+    def _load_images(self):
+        """
+        More robust image loading with better error handling and normalization.
+        """
+        try:
+            with open(self.product_info_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+
+            print(f"[DEBUG] Loading images from {self.product_info_path}")
+
+            for brand_entry in data:
+                brand_name = brand_entry.get("brand", "").strip()
+                # print(f"[DEBUG] Processing brand: {brand_name}")
+
+                for product in brand_entry.get("products", []):
+                    name = product.get("name", "").strip()
+                    img = product.get("image_url", "").strip()
+
+                    if name and img:
+                        # Store multiple variations of the product name
+                        normalized_name = name.lower()
+                        self.image_map[normalized_name] = img
+
+                        # Also store with brand if available
+                        if brand_name:
+                            with_brand = f"{name} ({brand_name})".lower()
+                            self.image_map[with_brand] = img
+
+                            # Store brand + product format too
+                            brand_product = f"{brand_name} {name}".lower()
+                            self.image_map[brand_product] = img
+
+                        # print(f"[DEBUG] Loaded image for: {name} -> {img}")
+
+            print(f"[DEBUG] Total images loaded: {len(self.image_map)}")
+            # print(f"[DEBUG] Image keys: {list(self.image_map.keys())}")
+
+        except Exception as e:
+            print(f"[ImageLoader] Failed to load: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def insert_product_images(self, answer_text):
+        """
+        Insert product images after Markdown links in the answer text.
+        Fixed version that prevents duplicates and handles proper matching.
+        """
+        print(f"[DEBUG] Original answer_text length: {len(answer_text)}")
+        # print(f"[DEBUG] Available images: {self.image_map.keys()}")
+
+        # Track processed images to prevent duplicates
+        processed_images = set()
+
+        # Find all Markdown links first
+        # Matching Markdown format: [**Product/Brand Name**](url)
+        link_pattern_1 = re.compile(r'\[\*\*(.*?)\*\*\]\((.*?)\)', re.IGNORECASE)
+        # Matching Markdown format: **[Product/Brand Name](url)**
+        link_pattern_2 = re.compile(r'\*\*\[([^\]]+)\]\(([^)]+)\)\*\*', re.IGNORECASE)
+
+        matches_1 = list(link_pattern_1.finditer(answer_text))
+        matches_2 = list(link_pattern_2.finditer(answer_text))
+
+        print(f"[DEBUG] Found format 1: {len(matches_1)} markdown links")
+        print(f"[DEBUG] Found format 2: {len(matches_2)} markdown links")
+
+        matches = matches_1 + matches_2
+
+        # Process matches in reverse order to avoid position shifts
+        for match in reversed(matches):
+            link_text = match.group(1).strip()
+            link_url = match.group(2).strip()
+            full_match = match.group(0)
+
+            print(f"[DEBUG] Processing link: '{link_text}' -> {link_url}")
+
+            # Find matching image
+            matched_image = None
+            matched_key = None
+
+            # Strategy 1: Exact match (case-insensitive)
+            for img_key in self.image_map.keys():
+                if link_text.lower() == img_key.lower():
+                    matched_image = self.image_map[img_key]
+                    matched_key = img_key
+                    print(f"[DEBUG] Exact match found: {img_key}, URL: {matched_image}")
+                    break
+
+            # Strategy 2: Handle product names with brand info like "Product (Brand)"
+            if not matched_image and '(' in link_text:
+                product_part = link_text.split('(')[0].strip()
+                for img_key in self.image_map.keys():
+                    if product_part.lower() == img_key.lower():
+                        matched_image = self.image_map[img_key]
+                        matched_key = img_key
+                        print(f"[DEBUG] Brand-aware exact match found: {img_key}")
+                        break
+
+            # Strategy 3: Partial match (be more selective)
+            if not matched_image:
+                for img_key in self.image_map.keys():
+                    # Only match if the image key is a significant part of the link text
+                    if (len(img_key) > 3 and img_key.lower() in link_text.lower() and
+                            len(img_key) / len(link_text) > 0.5):
+                        matched_image = self.image_map[img_key]
+                        matched_key = img_key
+                        print(f"[DEBUG] Selective partial match found: {img_key}")
+                        break
+
+            # Add image if found and not already processed
+            if matched_image and matched_image not in processed_images:
+                # Check if this exact image URL is already in the text
+                if matched_image not in answer_text:
+                    img_markdown = f"\n\n![{matched_key}]({matched_image})"
+                    # Insert image right after the current link
+                    start_pos = match.end()
+                    answer_text = (answer_text[:start_pos] +
+                                   img_markdown +
+                                   answer_text[start_pos:])
+                    processed_images.add(matched_image)
+                    print(f"[DEBUG] Added image for: {link_text}")
+                else:
+                    print(f"[DEBUG] Image already in text, skipping: {matched_image}")
+            elif matched_image:
+                print(f"[DEBUG] Image already processed, skipping: {matched_image}")
+            else:
+                print(f"[DEBUG] No image found for: '{link_text}'")
+
+        print("ANSWER TEXT AFTER IMAGE INSERTION:", answer_text)
+        return answer_text
 
     def _load_links(self):
         # Load all product and brand links from the chunks.json file
@@ -89,7 +223,10 @@ class ProductLinkManager:
     def extract_and_validate_links(self, response_text):
         # Extract the product name from the response and validate/replace the link
         # Matching Markdown format: [**Product/Brand Name**](url)
-        link_pattern = r'\[\*\*(.*?)\*\*\]\((.*?)\)'
+        link_pattern1 = r'\[\*\*(.*?)\*\*\]\((.*?)\)'
+
+        # Matching Markdown format: **[Product/Brand Name](url)**
+        link_pattern2 = r'\*\*\[([^\]]+)\]\(([^)]+)\)\*\*'
 
         def replace_link(match):
             display_text = match.group(1)
@@ -117,12 +254,14 @@ class ProductLinkManager:
                 return match.group(0)
 
         # Substitute all links in the response text
-        corrected_response = re.sub(link_pattern, replace_link, response_text)
+        corrected_response = re.sub(link_pattern1, replace_link, response_text)
+        corrected_response = re.sub(link_pattern2, replace_link, corrected_response)
+        print(f"[DEBUG] Corrected response: {corrected_response, len(corrected_response)}")
         return corrected_response
 
-def query_with_langchain_rag(question, chatbot_name, chat_history, validate_links=True):
+def query_with_langchain_rag(question, chatbot_name, chat_history):
     # 0. Initialize the link manager if link validation is enabled
-    link_manager = ProductLinkManager() if validate_links else None
+    link_manager = ProductLinkManager()
 
     # 1. Construct the embedding model
     embedding = AzureOpenAIEmbeddings(
@@ -159,8 +298,7 @@ def query_with_langchain_rag(question, chatbot_name, chat_history, validate_link
                     - A usage suggestion (e.g. when or who might enjoy this product)
                     - A follow-up question asking if the user would like to know more (e.g. nutrition details, nearby stores, similar products, etc.)
                     
-                    
-                    Respond conversationally, like a real chat.
+                    Respond conversationally, like a real chat, you can also use emoji in the response BUT DO NOT USE EMOJI AS SINGLE BULLET LIST.
 
                     IMPORTANT: When providing product links, you MUST use the EXACT URL provided in the context for each product. Do not modify or generate URLs.
 
@@ -186,7 +324,7 @@ def query_with_langchain_rag(question, chatbot_name, chat_history, validate_link
         api_version=AZURE_OPENAI_VERSION,
         azure_endpoint=AZURE_OPENAI_ENDPOINT,
         azure_deployment=AZURE_OPENAI_MODEL_DEPLOYMENT,
-        temperature=0.3
+        temperature=0.5
     )
 
     # 4. Encapsulate the LLM and vectorstore in a RetrievalQA chain
@@ -198,16 +336,45 @@ def query_with_langchain_rag(question, chatbot_name, chat_history, validate_link
     )
 
     # 5. Define the query function
-    result = retrieval_chain({"query": question})
+    res = retrieval_chain({"query": question})
+    source_docs = res["source_documents"]
+
+    product_map = defaultdict(lambda: {"url": None, "chunks": []})
+
+    for doc in source_docs:
+        pname = doc.metadata.get("product_name")
+        purl = doc.metadata.get("product_url")
+        if pname and purl:
+            product_map[pname]["url"] = purl
+            product_map[pname]["chunks"].append(doc.page_content)
+
+    print("[DEBUG] Product Map:", product_map)
+
+    multi_context = ""
+    for pname, pdata in product_map.items():
+        multi_context += f"=== {pname} ===\nURL: {pdata['url']}\n"
+        multi_context += "\n".join(pdata["chunks"])
+        multi_context += "\n\n"
+
+    llm_chain = LLMChain(llm=llm, prompt=prompt_template)
+
+    answer = llm_chain.run(
+        context=multi_context,
+        question=question,
+        chatbot_name=chatbot_name,
+        history=history_str
+    )
 
     # 6. Verify and fix the url
-    answer = result["result"]
-    if validate_links and link_manager:
-        answer = link_manager.extract_and_validate_links(answer)
+    # answer = result["result"]
+    # if validate_links and link_manager:
+    answer = link_manager.extract_and_validate_links(answer)
+    print("[DEBUG] Final answer after link validation:", answer)
+    answer = link_manager.insert_product_images(answer)
 
     return {
-        "answer": answer,
-        "sources": [doc.metadata for doc in result["source_documents"]]
+        "answer": answer
+        # "sources": [doc.metadata for doc in result["source_documents"]]
     }
 
 # === Test the function ===
