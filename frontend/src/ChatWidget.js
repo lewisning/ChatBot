@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import './ChatWidget.css';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -27,17 +27,208 @@ function ChatWidget() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
+
+  // Const for Voice functionality
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentPlayingIndex, setCurrentPlayingIndex] = useState(null);
+
+  const recognitionRef = useRef(null);
+  const synthRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const microphoneRef = useRef(null);
+  const animationRef = useRef(null);
+  const mediaStreamRef = useRef(null);
+
   const fullWelcomeText = useMemo(() =>
     `Hi I'm ${userInfo.name}!\nYour personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
     [userInfo.name]
   );
 
+  const cleanupMediaStream = useCallback(() => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => {
+        track.stop();
+      });
+      mediaStreamRef.current = null;
+    }
+  }, []);
+
+  const closeAudioContext = useCallback(async () => {
+    if (audioContextRef.current) {
+      try {
+        if (audioContextRef.current.state !== 'closed') {
+          await audioContextRef.current.close();
+        }
+      } catch (err) {
+        console.warn('AudioContext close error:', err);
+      } finally {
+        audioContextRef.current = null;
+      }
+    }
+  }, []);
+
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      setAudioLevel(0);
+      cleanupMediaStream();
+    }
+  }, [cleanupMediaStream]);
+
+  const handleVoiceSend = useCallback(async (voiceMessage) => {
+    if (!voiceMessage.trim() || isThinking) return;
+
+    if (showWelcome) {
+      setIsFadingOut(true);
+      setTimeout(() => {
+        setShowWelcome(false);
+        setIsFadingOut(false);
+      }, 550);
+    }
+
+    setIsThinking(true);
+
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const userMessage = { sender: 'user', text: voiceMessage, time: now, isVoice: true };
+    const messageDelay = showWelcome ? 500 : 0;
+
+    setTimeout(() => {
+      setChatLog(prev => [...prev, userMessage]);
+      const thinkingMessage = { sender: 'bot', text: 'Thinking...', time: now };
+      setChatLog(prev => [...prev, thinkingMessage]);
+    }, messageDelay);
+
+    try {
+      let coords = null;
+      try {
+        coords = await getUserLocation();
+      } catch (geoErr) {
+        console.warn("User location unavailable:", geoErr);
+      }
+
+      const payload = {
+        question: voiceMessage,
+        name: userInfo.name,
+        ...(coords && {
+          latitude: coords.latitude,
+          longitude: coords.longitude
+        }),
+        chat_history: chatLog
+      };
+
+      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      const botMessage = {
+        sender: 'bot',
+        text: res.data.answer,
+        time: now,
+        refs: res.data.reference || [],
+        canSpeak: true
+      };
+
+      setChatLog(prev => {
+        const newLog = [...prev];
+        newLog[newLog.length - 1] = botMessage;
+        return newLog;
+      });
+
+      setTimeout(() => {
+        const messageIndex = chatLog.length + 1;
+        speakText(res.data.answer, messageIndex);
+      }, 500);
+
+    } catch (err) {
+      console.error(err);
+      const errorMessage = { sender: 'bot', text: 'Sorry, something went wrong.', time: now };
+      setChatLog(prev => {
+        const newLog = [...prev];
+        newLog[newLog.length - 1] = errorMessage;
+        return newLog;
+      });
+    } finally {
+      setIsThinking(false);
+    }
+  }, [isThinking, showWelcome, userInfo.name, chatLog]);
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+      recognitionRef.current.lang = 'en-US'; // You can change this to your preferred language
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        setTranscript(finalTranscript + interimTranscript);
+
+        if (finalTranscript.trim()) {
+          setMessage('');
+          setTranscript('');
+          stopListening();
+          setTimeout(() => {
+            if (finalTranscript.trim()) {
+              handleVoiceSend(finalTranscript.trim());
+            }
+          }, 100);
+        }
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error('Voice recognition error:', event.error);
+        setIsListening(false);
+        setTranscript('');
+        cleanupMediaStream();
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+        cleanupMediaStream();
+      };
+    }
+
+    if ('speechSynthesis' in window) {
+      synthRef.current = window.speechSynthesis;
+    }
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+
+      closeAudioContext();
+
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      cleanupMediaStream();
+    };
+  }, [handleVoiceSend, stopListening, cleanupMediaStream]);
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
   }, []);
 
-  // Remove chat messages but keep user info (for debugging purposes)
   useEffect(() => {
     localStorage.removeItem('chatLog');
     localStorage.removeItem('userInfo');
@@ -48,10 +239,9 @@ function ChatWidget() {
     if (isOpen && bottomRef.current) {
       const scrollTimeout = setTimeout(() => {
         bottomRef.current.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-
-    return () => clearTimeout(scrollTimeout);
-  }
+      }, 100);
+      return () => clearTimeout(scrollTimeout);
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -77,7 +267,6 @@ function ChatWidget() {
     }
   }, [isOpen, showWelcome, fullWelcomeText]);
 
-
   useEffect(() => {
     requestAnimationFrame(() => {
       if (bottomRef.current) {
@@ -85,7 +274,6 @@ function ChatWidget() {
       }
     });
   }, [chatLog]);
-
 
   useEffect(() => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo));
@@ -95,18 +283,95 @@ function ChatWidget() {
     localStorage.setItem('chatLog', JSON.stringify(chatLog));
   }, [chatLog]);
 
-  // useEffect(() => {
-  //   if (isOpen) {
-  //     const welcome = {
-  //       sender: 'bot',
-  //       text: `Hi I'm ${userInfo.name}! Your personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
-  //       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  //     };
-  //     if (chatLog.length === 0) {
-  //       setChatLog([welcome]);
-  //     }
-  //   }
-  // }, [isOpen, userInfo.name, chatLog.length]);
+  const setupAudioVisualization = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      microphoneRef.current = audioContextRef.current.createMediaStreamSource(stream);
+
+      analyserRef.current.fftSize = 256;
+      microphoneRef.current.connect(analyserRef.current);
+
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+
+      const updateAudioLevel = () => {
+        if (analyserRef.current && isListening) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          setAudioLevel(average / 255);
+          animationRef.current = requestAnimationFrame(updateAudioLevel);
+        }
+      };
+
+      updateAudioLevel();
+    } catch (error) {
+      console.error('Unable to access microphone:', error);
+      alert('Please allow microphone access to use voice features.');
+      setIsListening(false);
+    }
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isThinking) {
+      setIsListening(true);
+      setTranscript('');
+      setMessage('');
+      recognitionRef.current.start();
+      setupAudioVisualization();
+    }
+  };
+
+  const speakText = (text, messageIndex) => {
+    if (synthRef.current) {
+      if (isPlaying) {
+        synthRef.current.cancel();
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+      }
+
+      const cleanText = text
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/#+\s/g, '')
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`(.*?)`/g, '$1');
+
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 0.8;
+
+      utterance.onstart = () => {
+        setIsPlaying(true);
+        setCurrentPlayingIndex(messageIndex);
+      };
+
+      utterance.onend = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+      };
+
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+      };
+
+      synthRef.current.speak(utterance);
+    }
+  };
+
+  const stopSpeaking = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+      setIsPlaying(false);
+      setCurrentPlayingIndex(null);
+    }
+  };
 
   const toggleChat = () => setIsOpen(!isOpen);
 
@@ -132,6 +397,7 @@ function ChatWidget() {
       setChatLog(prev => [...prev, thinkingMessage]);
     }, messageDelay);
 
+    const currentMessage = message;
     setMessage('');
 
     try {
@@ -144,7 +410,7 @@ function ChatWidget() {
       }
 
       const payload = {
-        question: message,
+        question: currentMessage,
         name: userInfo.name,
         ...(coords && {
           latitude: coords.latitude,
@@ -159,7 +425,8 @@ function ChatWidget() {
         sender: 'bot',
         text: res.data.answer,
         time: now,
-        refs: res.data.reference || []
+        refs: res.data.reference || [],
+        canSpeak: true
       };
       setChatLog(prev => {
         const newLog = [...prev];
@@ -198,7 +465,7 @@ function ChatWidget() {
           e.currentTarget.querySelector('img').style.transform = 'rotateX(0deg) rotateY(0deg)';
         }}
       >
-        <img src={"/bot-icon.png"}  alt="chat icon" className="chatbot-button"/>
+        <img src={"/bot-icon.png"} alt="chat icon" className="chatbot-button"/>
       </div>
 
       <AnimatePresence>
@@ -276,7 +543,7 @@ function ChatWidget() {
                         {chatLog.map((msg, idx) => (
                           <div key={idx} className={`chat-message-block ${msg.sender}`}>
                             <div className="chat-message-row">
-                              <div className="chat-bubble">
+                              <div className={`chat-bubble ${msg.isVoice ? 'voice-message' : ''} ${currentPlayingIndex === idx ? 'speaking' : ''}`}>
                                 <div className="chat-text">
                                   {msg.text === 'Thinking...' ? (
                                     <div className="breathing-indicator">Thinking...</div>
@@ -309,7 +576,24 @@ function ChatWidget() {
                                     </div>
                                   )}
                                 </div>
-                                <div className="chat-time">{msg.time}</div>
+                                <div className="chat-time-row">
+                                  <div className="chat-time">{msg.time}</div>
+                                  {msg.canSpeak && msg.sender === 'bot' && (
+                                    <button
+                                      onClick={() =>
+                                        currentPlayingIndex === idx ? stopSpeaking() : speakText(msg.text, idx)
+                                      }
+                                      className="voice-play-button"
+                                      title={currentPlayingIndex === idx ? "Stop speaking" : "Play voice"}
+                                    >
+                                      <img
+                                        src={currentPlayingIndex === idx ? "/voice-stop.png" : "/play.png"}
+                                        alt={currentPlayingIndex === idx ? "Stop" : "Play"}
+                                        className="w-5 h-5 object-contain"
+                                      />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             {msg.refs && msg.refs.length > 0 && (
@@ -338,19 +622,65 @@ function ChatWidget() {
               </motion.div>
 
               <div className="chat-footer">
+                {isListening && (
+                  <div className="voice-status">
+                    <div className="voice-visualizer">
+                      {[...Array(12)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="voice-bar"
+                          style={{
+                            height: `${Math.max(4, (audioLevel + Math.random() * 0.3) * 20)}px`,
+                            animationDelay: `${i * 100}ms`
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="voice-status-text">
+                      {transcript ? `Recorded: ${transcript}` : 'Recording...'}
+                    </div>
+                  </div>
+                )}
+
                 <div className="chat-input-wrapper">
                   <input
                     type="text"
                     value={message}
                     onChange={e => setMessage(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                    placeholder="Ask me anything..."
+                    placeholder={isListening ? "Voice input in progress" : "Ask me anything..."}
+                    disabled={isListening}
                   />
-                  <button onClick={sendMessage} disabled={isThinking} className="send-button-wrapper">
+
+                  <button
+                    onClick={isListening ? stopListening : startListening}
+                    disabled={isThinking}
+                    className={`
+                      relative p-4 rounded-full transition-all duration-300 transform hover:scale-110 shadow-lg
+                      ${isListening 
+                        ? 'bg-gradient-to-r from-red-500 to-pink-600 text-white animate-pulse' 
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
+                      }
+                      ${isThinking ? 'cursor-not-allowed opacity-50' : ''}
+                    `}
+                    title={isListening ? "Stop listening" : "Start voice input"}
+                  >
+                    <img
+                      src={isListening ? "/voice-stop.png" : "/voice-start.png"}
+                      alt={isListening ? "Stop" : "Mic"}
+                      className="w-5 h-5"
+                    />
+                    {isListening && (
+                      <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-30" />
+                    )}
+                  </button>
+
+
+                  <button onClick={sendMessage} disabled={isThinking || isListening} className="send-button-wrapper">
                     <img
                       src="/send-icon.png"
                       alt="Send"
-                      className={`send-icon ${isThinking ? 'hidden' : 'visible'}`}
+                      className={`send-icon ${isThinking || isListening ? 'hidden' : 'visible'}`}
                     />
                     <img
                       src="/loading.gif"
