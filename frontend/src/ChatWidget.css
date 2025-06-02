@@ -288,7 +288,7 @@
 .chat-body {
   padding: 1rem;
   overflow-y: auto;
-  background: #fff;
+  background: var(--bg-color);
   min-height: 0;
   max-height: calc(100vh - 350px);
   flex: 1;
@@ -370,7 +370,7 @@
 .chat-footer {
   display: flex;
   padding: 0.75rem;
-  background: #fff;
+  background: var(--bg-color);
   border-top: 1px solid #ddd;
   flex-shrink: 0;
 }
@@ -552,6 +552,7 @@
   }
 
   .chat-body {
+    background: var(--bg-color);
     padding: 0.875rem;
   }
 
@@ -633,6 +634,7 @@
   }
 
   .chat-body {
+    background: var(--bg-color);
     padding: 1rem;
     padding-bottom: 120px;
     max-height: calc(100vh - 200px);
@@ -664,7 +666,7 @@
     left: 0;
     right: 0;
     padding: 1rem;
-    background: #fff;
+    background: var(--bg-color);
     border-top: 2px solid #ddd;
     z-index: 10;
   }
@@ -746,6 +748,7 @@
   }
 
   .chat-body {
+    background: var(--bg-color);
     padding: 0.875rem;
     padding-bottom: 90px;
   }
@@ -761,6 +764,7 @@
   }
 
   .chat-footer {
+    background: var(--bg-color);
     padding: 0.875rem;
   }
 
@@ -830,6 +834,7 @@
   }
 
   .chat-body {
+    background: var(--bg-color);
     padding: 0.75rem;
     padding-bottom: 85px;
   }
@@ -845,6 +850,7 @@
   }
 
   .chat-footer {
+    background: var(--bg-color);
     padding: 0.75rem;
   }
 
@@ -898,6 +904,7 @@
   }
 
   .chat-body {
+    background: var(--bg-color);
     padding: 0.5rem 1rem;
     padding-bottom: 80px;
   }
@@ -910,6 +917,7 @@
 
   .chat-footer {
     padding: 0.5rem 1rem;
+    background: var(--bg-color);
   }
 
   .avatar-popup {
@@ -992,6 +1000,7 @@
   justify-content: center;
   padding: 40px 20px;
   text-align: center;
+  background: var(--bg-color);
 }
 
 .chat-window {
@@ -1013,6 +1022,10 @@
   font-size: 16px;
   color: #333;
   line-height: 1.6;
+}
+
+[data-theme="dark"] .welcome-text {
+  color: #e0e0e0;
 }
 
 .chat-fade-wrapper {

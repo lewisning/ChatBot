@@ -114,22 +114,26 @@ function ChatWidget() {
 
   const speakText = useCallback((text, messageIndex) => {
     if (synthRef.current) {
-      // Always cancel any current speech before starting new one
       synthRef.current.cancel();
 
       const cleanText = text
-        .replace(/\*\*(.*?)\*\*/g, '$1')
-        .replace(/\*(.*?)\*/g, '$1')
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-        .replace(/#+\s/g, '')
-        .replace(/```[\s\S]*?```/g, '')
-        .replace(/`(.*?)`/g, '$1');
+        .replace(/(?:\*\*|__)(.*?)\1/g, '$1') // remove markdown bold
+        .replace(/\*(.*?)\*/g, '$1')         // remove italics
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')  // remove markdown links
+        .replace(/#+\s/g, '')                // remove markdown headers
+        .replace(/```[\s\S]*?```/g, '')      // remove code blocks
+        .replace(/`(.*?)`/g, '$1')           // remove inline code
+        .replace(/[\u{1F300}-\u{1FAFF}]/gu, '') // remove emojis
+        .replace(/[!?.]/g, match => `${match} `) // add pause after punctuation
+        .replace(/[\r\n]+/g, '. ')           // replace new lines with pauses
+        .replace(/["“”‘’]/g, '')             // remove quotes
+        .trim();
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = 'en-US';
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
-      utterance.volume = 0.8;
+      utterance.rate = 0.92;
+      utterance.pitch = 1;
+      utterance.volume = 0.9;
 
       utterance.onstart = () => {
         setIsPlaying(true);
@@ -149,6 +153,7 @@ function ChatWidget() {
       synthRef.current.speak(utterance);
     }
   }, []);
+
 
   const handleVoiceSend = useCallback(async (voiceMessage) => {
     if (!voiceMessage.trim() || isThinking) return;
@@ -191,8 +196,8 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -448,8 +453,8 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
@@ -573,7 +578,11 @@ function ChatWidget() {
                         />
 
                         <button onClick={toggleChat} className="chat-close-button">
-                          <img src="/close.png" alt="Close" className="chat-close-icon" />
+                          <img
+                            src={theme === 'dark' ? '/close-dark.png' : '/close.png'}
+                            alt="Close"
+                            className="chat-close-icon"
+                          />
                         </button>
                       </motion.div>
 

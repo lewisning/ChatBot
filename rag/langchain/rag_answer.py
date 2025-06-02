@@ -147,10 +147,19 @@ class ProductLinkManager:
                 if matched_image not in answer_text:
                     img_markdown = f"\n\n![{matched_key}]({matched_image})"
                     # Insert image right after the current link
-                    start_pos = match.end()
-                    answer_text = (answer_text[:start_pos] +
-                                   img_markdown +
-                                   answer_text[start_pos:])
+                    insert_pos = match.end()
+
+                    # Check if there's punctuation right after the matched link
+                    if insert_pos < len(answer_text) and answer_text[insert_pos] in ",.;:!? ":
+                        print(f"[DEBUG] Found punctuation after link: '{answer_text[insert_pos]}'")
+                        insert_pos += 1  # move after punctuation
+
+                    answer_text = (
+                            answer_text[:insert_pos] +
+                            img_markdown +
+                            answer_text[insert_pos:]
+                    )
+
                     processed_images.add(matched_image)
                     print(f"[DEBUG] Added image for: {link_text}")
                 else:
