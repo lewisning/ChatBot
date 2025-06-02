@@ -51,8 +51,8 @@ function ChatWidget() {
   );
 
   const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('chatTheme');
-    return saved || 'default';
+    // const saved = localStorage.getItem('chatTheme');
+    return 'default';
   });
 
   const [fontSize, setFontSize] = useState(() => {
