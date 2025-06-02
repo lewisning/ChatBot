@@ -3,6 +3,7 @@ import './ChatWidget.css';
 import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getUserLocation } from './geolocation';
+import MenuBar from './MenuBar';
 import avatar1 from './assets/avatars/avatar1.png';
 import avatar2 from './assets/avatars/avatar2.png';
 import avatar3 from './assets/avatars/avatar3.png';
@@ -47,6 +48,37 @@ function ChatWidget() {
     `Hi I'm ${userInfo.name}!\nYour personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
     [userInfo.name]
   );
+
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('chatTheme');
+    return saved || 'default';
+  });
+
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('chatFontSize');
+    return saved || 'medium';
+  });
+
+  const handleThemeChange = (newTheme) => {
+    setTheme(newTheme);
+    localStorage.setItem('chatTheme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
+
+  const handleFontSizeChange = (newFontSize) => {
+    setFontSize(newFontSize);
+    localStorage.setItem('chatFontSize', newFontSize);
+    document.documentElement.setAttribute('data-font-size', newFontSize);
+  };
+
+  const handleClearChat = () => {
+    setChatLog([]);
+    localStorage.removeItem('chatLog');
+    setShowWelcome(true);
+    setIsFadingOut(false);
+    setDisplayedText('');
+    localStorage.removeItem('userInfo');
+  };
 
   const cleanupMediaStream = useCallback(() => {
     if (mediaStreamRef.current) {
@@ -531,6 +563,15 @@ function ChatWidget() {
                             {userInfo.name}
                           </span>
                         )}
+
+                        <MenuBar
+                          onClearChat={handleClearChat}
+                          onThemeChange={handleThemeChange}
+                          onFontSizeChange={handleFontSizeChange}
+                          currentTheme={theme}
+                          currentFontSize={fontSize}
+                        />
+
                         <button onClick={toggleChat} className="chat-close-button">
                           <img src="/close.png" alt="Close" className="chat-close-icon" />
                         </button>
