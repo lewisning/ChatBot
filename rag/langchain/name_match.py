@@ -22,33 +22,47 @@ llm = AzureChatOpenAI(
 )
 
 # 3. Match product with LLM
-def product_match(question, product_keywords):
+def product_match(question, product_keywords, chat_history):
+    # 提取最近 bot 推荐的产品信息作为上下文
+    recent_bot_messages = [msg["text"] for msg in reversed(chat_history) if msg["sender"] == "bot"]
+    context_text = "\n\n".join(recent_bot_messages[:1])  # 可视情况提取多条
+
     prompt = f"""
-                You are an intelligent product name matching assistant.
-                Please find the product that best matches the question entered by the user in the following list of product names, returning only the name of the best product and nothing else. Return None if you can't find it.
-                
-                Product and brand names:
-                {chr(10).join(product_keywords)}
-                User Input: {question}
-                Matched Name:
+            You are a helpful assistant that resolves product mentions in user questions based on context.
+            
+            Here is the chat history:
+            {context_text}
+            
+            Here is the user question:
+            "{question}"
+            
+            From the following list of product and brand names, identify which one is being referred to by the user. If there is no clear match, return None.
+            
+            Product and brand names:
+            {chr(10).join(product_keywords)}
+            
+            Return only the matched product name, exactly as listed above. Do not include any explanation.
+            
+            Matched Name:
             """
+
     messages = [
-        SystemMessage(content="You are an intelligent product name matching assistant that can only return the most matching product name in the list."),
+        SystemMessage(content="You resolve vague product references using context."),
         HumanMessage(content=prompt)
     ]
+
     response = llm(messages)
     answer = response.content.strip()
-    # Starndardize the answer to lowercase and remove special quotes
+
     if answer.lower() == "none":
         return None
-    # Double check if the answer is in the product list
     norm_ans = answer.lower().replace("’", "'").replace("‘", "'")
     valid_choices = [x.lower().replace("’", "'").replace("‘", "'") for x in product_keywords]
     if norm_ans in valid_choices:
-        # Return the original product name from the list
         idx = valid_choices.index(norm_ans)
         return [product_keywords[idx]]
     return None
+
 
 
 # TEST CASE

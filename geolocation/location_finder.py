@@ -73,7 +73,7 @@ def stores_to_context(store_results, product):
 def location_query(question, lon, lat, chat_history):
     product_keywords, product_to_brand = load_brand_keywords()
 
-    matched_product = product_match(question, product_keywords)
+    matched_product = product_match(question, product_keywords, chat_history)
     print("MATCHED PRODUCT:", matched_product)
     if not matched_product:
         matched_product = extract_latest_product_from_history(chat_history)

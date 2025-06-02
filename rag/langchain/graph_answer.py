@@ -477,7 +477,7 @@ def grag_view(question, chat_history):
                         Be concise, factual, and in English. **Do not say 'based on the context'**.
                         Only use content that is clearly relevant to the question.
                         Ignore irrelevant products or content even if they are nearby in the context.
-                
+                        
                         If the answer contains product recommendations, format each product as a markdown hyperlink: [**Product Name**](product_url)
                         """
 

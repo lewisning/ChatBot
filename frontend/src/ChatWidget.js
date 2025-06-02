@@ -43,6 +43,7 @@ function ChatWidget() {
   const microphoneRef = useRef(null);
   const animationRef = useRef(null);
   const mediaStreamRef = useRef(null);
+  const audioRef = useRef(null);
 
   const fullWelcomeText = useMemo(() =>
     `Hi I'm ${userInfo.name}!\nYour personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
@@ -112,48 +113,66 @@ function ChatWidget() {
     }
   }, [cleanupMediaStream]);
 
-  const speakText = useCallback((text, messageIndex) => {
-    if (synthRef.current) {
-      synthRef.current.cancel();
-
-      const cleanText = text
-        .replace(/(?:\*\*|__)(.*?)\1/g, '$1') // remove markdown bold
-        .replace(/\*(.*?)\*/g, '$1')         // remove italics
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1')  // remove markdown links
-        .replace(/#+\s/g, '')                // remove markdown headers
-        .replace(/```[\s\S]*?```/g, '')      // remove code blocks
-        .replace(/`(.*?)`/g, '$1')           // remove inline code
-        .replace(/[\u{1F300}-\u{1FAFF}]/gu, '') // remove emojis
-        .replace(/[!?.]/g, match => `${match} `) // add pause after punctuation
-        .replace(/[\r\n]+/g, '. ')           // replace new lines with pauses
-        .replace(/["“”‘’]/g, '')             // remove quotes
-        .trim();
-
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = 'en-US';
-      utterance.rate = 0.92;
-      utterance.pitch = 1;
-      utterance.volume = 0.9;
-
-      utterance.onstart = () => {
-        setIsPlaying(true);
-        setCurrentPlayingIndex(messageIndex);
-      };
-
-      utterance.onend = () => {
-        setIsPlaying(false);
-        setCurrentPlayingIndex(null);
-      };
-
-      utterance.onerror = () => {
-        setIsPlaying(false);
-        setCurrentPlayingIndex(null);
-      };
-
-      synthRef.current.speak(utterance);
+  const stopSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
     }
+
+    setIsPlaying(false);
+    setCurrentPlayingIndex(null);
   }, []);
 
+  const speakText = useCallback(async (text, messageIndex) => {
+    try {
+      stopSpeaking();
+
+      const response = await fetch("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/tts/generate/", {
+      // const response = await fetch("http://localhost:8000/tts/generate/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (!response.ok) {
+        throw new Error("Azure TTS failed");
+      }
+
+      const audioBlob = await response.blob();
+      const audioURL = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioURL);
+
+      audioRef.current = audio;
+
+      setIsPlaying(true);
+      setCurrentPlayingIndex(messageIndex);
+
+      audio.onended = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+        audioRef.current = null;
+        URL.revokeObjectURL(audioURL);
+      };
+
+      audio.onerror = () => {
+        setIsPlaying(false);
+        setCurrentPlayingIndex(null);
+        audioRef.current = null;
+        console.error("Audio playback error");
+        URL.revokeObjectURL(audioURL);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error("Azure TTS error:", err);
+      setIsPlaying(false);
+      setCurrentPlayingIndex(null);
+      audioRef.current = null;
+    }
+  }, [stopSpeaking]);
 
   const handleVoiceSend = useCallback(async (voiceMessage) => {
     if (!voiceMessage.trim() || isThinking) return;
@@ -398,14 +417,6 @@ function ChatWidget() {
       setupAudioVisualization();
     }
   };
-
-  const stopSpeaking = useCallback(() => {
-    if (synthRef.current) {
-      synthRef.current.cancel();
-      setIsPlaying(false);
-      setCurrentPlayingIndex(null);
-    }
-  }, []);
 
   const toggleChat = () => setIsOpen(!isOpen);
 
