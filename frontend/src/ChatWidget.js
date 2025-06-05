@@ -44,6 +44,10 @@ function ChatWidget() {
   const animationRef = useRef(null);
   const mediaStreamRef = useRef(null);
   const audioRef = useRef(null);
+  const [windowSize, setWindowSize] = useState(() => {
+    const saved = localStorage.getItem('chatWindowSize');
+    return saved || 'normal';
+  });
 
   const fullWelcomeText = useMemo(() =>
     `Hi I'm ${userInfo.name}!\nYour personal MadeWithNestle assistant.\nAsk me anything, and I'll try my best to help!`,
@@ -70,6 +74,31 @@ function ChatWidget() {
     setFontSize(newFontSize);
     localStorage.setItem('chatFontSize', newFontSize);
     document.documentElement.setAttribute('data-font-size', newFontSize);
+  };
+
+  const handleWindowSizeChange = (newSize) => {
+    setWindowSize(newSize);
+    localStorage.setItem('chatWindowSize', newSize);
+    document.documentElement.setAttribute('data-window-size', newSize);
+  };
+
+  const toggleWindowSize = () => {
+    const sizes = ['normal', 'large', 'small'];
+    const currentIndex = sizes.indexOf(windowSize);
+    const nextIndex = (currentIndex + 1) % sizes.length;
+    const newSize = sizes[nextIndex];
+    handleWindowSizeChange(newSize);
+  };
+
+  const getWindowSizeTitle = () => {
+    switch (windowSize) {
+      case 'small':
+        return 'Current: Small - Click for Normal';
+      case 'large':
+        return 'Current: Large - Click for Small';
+      default:
+        return 'Current: Normal - Click for Large';
+    }
   };
 
   const handleClearChat = () => {
@@ -128,8 +157,8 @@ function ChatWidget() {
     try {
       stopSpeaking();
 
-      const response = await fetch("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/tts/generate/", {
-      // const response = await fetch("http://localhost:8000/tts/generate/", {
+      // const response = await fetch("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/tts/generate/", {
+      const response = await fetch("http://localhost:8000/tts/generate/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -215,13 +244,13 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
         time: now,
-        refs: res.data.reference || [],
+        refs: res.data.sources || [],
         canSpeak: true
       };
 
@@ -464,13 +493,13 @@ function ChatWidget() {
         chat_history: chatLog
       };
 
-      const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
-      // const res = await axios.post("http://localhost:8000/chat/", payload);
+      // const res = await axios.post("https://nesbot-czf8e6dzgtbjgsgz.canadacentral-01.azurewebsites.net/chat/", payload);
+      const res = await axios.post("http://localhost:8000/chat/", payload);
       const botMessage = {
         sender: 'bot',
         text: res.data.answer,
         time: now,
-        refs: res.data.reference || [],
+        refs: res.data.sources || [],
         canSpeak: true
       };
       setChatLog(prev => {
@@ -516,7 +545,7 @@ function ChatWidget() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="chat-popup"
+            className={`chat-popup ${windowSize}`}
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 100 }}
@@ -579,6 +608,14 @@ function ChatWidget() {
                             {userInfo.name}
                           </span>
                         )}
+
+                        <button
+                          onClick={toggleWindowSize}
+                          className="window-size-button"
+                          title={getWindowSizeTitle()}
+                        >
+                            <img src={"/window-change.png"} alt="Change Window Size" className="window-size-icon" />
+                        </button>
 
                         <MenuBar
                           onClearChat={handleClearChat}
@@ -654,22 +691,6 @@ function ChatWidget() {
                                 </div>
                               </div>
                             </div>
-                            {msg.refs && msg.refs.length > 0 && (
-                              <div className="chat-references">
-                                <strong>References:</strong>
-                                {msg.refs.map(ref => (
-                                  <a
-                                    key={ref.number}
-                                    href={ref.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="ref-button"
-                                  >
-                                    [{ref.number}]
-                                  </a>
-                                ))}
-                              </div>
-                            )}
                           </div>
                         ))}
                         <div ref={bottomRef} />

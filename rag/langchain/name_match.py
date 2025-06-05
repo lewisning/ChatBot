@@ -23,9 +23,8 @@ llm = AzureChatOpenAI(
 
 # 3. Match product with LLM
 def product_match(question, product_keywords, chat_history):
-    # 提取最近 bot 推荐的产品信息作为上下文
     recent_bot_messages = [msg["text"] for msg in reversed(chat_history) if msg["sender"] == "bot"]
-    context_text = "\n\n".join(recent_bot_messages[:1])  # 可视情况提取多条
+    context_text = "\n\n".join(recent_bot_messages[:1])
 
     prompt = f"""
             You are a helpful assistant that resolves product mentions in user questions based on context.

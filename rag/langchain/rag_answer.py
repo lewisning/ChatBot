@@ -381,13 +381,40 @@ def query_with_langchain_rag(question, chatbot_name, chat_history):
     print("[DEBUG] Final answer after link validation:", answer)
     answer = link_manager.insert_product_images(answer)
 
+    # 7. Prepare the references
+    references = []
+    seen_urls = set()
+    for doc in source_docs:
+        meta = doc.metadata
+        if "product_name" in meta and "product_url" in meta:
+            if meta["product_url"] not in seen_urls:
+                references.append({
+                    "title": f"{meta['product_name']} | Made with Nestlé Canada",
+                    "url": meta["product_url"]
+                })
+                seen_urls.add(meta["product_url"])
+        elif "brand" in meta and "brand_url" in meta:
+            if meta["brand_url"] not in seen_urls:
+                references.append({
+                    "title": f"{meta['brand']} Brands' Products | Made With Nestlé Canada",
+                    "url": meta["brand_url"]
+                })
+                seen_urls.add(meta["brand_url"])
+
+    if references:
+        references_md = "\n\n**Related Links**\n" + "\n".join(
+            f"- [{ref['title']}]({ref['url']})" for ref in references
+        )
+        answer += references_md
+
+    # 8. Format the sources
     return {
-        "answer": answer
-        # "sources": [doc.metadata for doc in result["source_documents"]]
+        "answer": answer,
+        # "sources": references
     }
 
 # === Test the function ===
 if __name__ == "__main__":
-    res = query_with_langchain_rag("can you introduce s'mores products", "assistant")
+    res = query_with_langchain_rag("can you introduce s'mores products", "assistant", [])
     print("Answer:", res["answer"])
-    print("Sources:", res["sources"])
+    print("Sources:", res["Sources"])
