@@ -51,7 +51,6 @@ def extract_latest_product_from_history(chat_history):
                     products.add(product.lower())
     return list(products) if products else None
 
-
 def haversine(lat1, lon1, lat2, lon2):
     R = 6371
     dlat = math.radians(lat2-lat1)

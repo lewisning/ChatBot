@@ -18,10 +18,13 @@ const getImagePath = (imageName) => {
 const images = {
   botIcon: getImagePath('bot-icon.png'),
   windowChange: getImagePath('window-change.png'),
+  windowChangeDark: getImagePath('window-change-black.png'),
   closeDark: getImagePath('close-dark.png'),
   close: getImagePath('close.png'),
   voiceStop: getImagePath('voice-stop.png'),
+  voiceStopDark: getImagePath('voice-stop-dark.png'),
   voiceStart: getImagePath('voice-start.png'),
+  voiceStartDark: getImagePath('voice-start-dark.png'),
   play: getImagePath('play.png'),
   sendIcon: getImagePath('send-icon.png'),
   loading: getImagePath('loading.gif'),
@@ -635,7 +638,7 @@ function ChatWidget() {
                         className="window-size-button"
                         title={getWindowSizeTitle()}
                       >
-                          <img src={images.windowChange} alt="Change Window Size" className="window-size-icon" />
+                          <img src={ theme === 'dark' ? images.windowChangeDark : images.windowChange} alt="Change Window Size" className="window-size-icon" />
                       </button>
 
                       <MenuBar
@@ -773,7 +776,9 @@ function ChatWidget() {
                     title={isListening ? "Stop listening" : "Start voice input"}
                   >
                     <img
-                      src={isListening ? images.voiceStop : images.voiceStart}
+                      src={theme === 'dark'
+                          ? (isListening ? images.voiceStopDark : images.voiceStartDark)
+                          : (isListening ? images.voiceStop : images.voiceStart)}
                       alt={isListening ? "Stop" : "Mic"}
                       className="w-5 h-5"
                     />
