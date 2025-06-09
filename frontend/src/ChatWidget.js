@@ -10,12 +10,29 @@ import avatar3 from './assets/avatars/avatar3.png';
 import avatar4 from './assets/avatars/avatar4.png';
 import ReactMarkdown from 'react-markdown';
 
+const getImagePath = (imageName) => {
+  const basePath = process.env.PUBLIC_URL || '';
+  return `${basePath}/${imageName}`;
+};
+
+const images = {
+  botIcon: getImagePath('bot-icon.png'),
+  windowChange: getImagePath('window-change.png'),
+  closeDark: getImagePath('close-dark.png'),
+  close: getImagePath('close.png'),
+  voiceStop: getImagePath('voice-stop.png'),
+  voiceStart: getImagePath('voice-start.png'),
+  play: getImagePath('play.png'),
+  sendIcon: getImagePath('send-icon.png'),
+  loading: getImagePath('loading.gif'),
+};
+
 function ChatWidget() {
   const bottomRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [userInfo, setUserInfo] = useState(() => {
     const saved = localStorage.getItem('userInfo');
-    return saved ? JSON.parse(saved) : { name: 'SMARTIE', avatar: 'chat-icon.png' };
+    return saved ? JSON.parse(saved) : { name: 'SMARTIE', avatar: avatar1 };
   });
   const [isEditingName, setIsEditingName] = useState(false);
   const [showAvatarPopup, setShowAvatarPopup] = useState(false);
@@ -29,7 +46,7 @@ function ChatWidget() {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
 
-  // Const for Voice functionality
+  // Voice functionality states
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [audioLevel, setAudioLevel] = useState(0);
@@ -55,8 +72,7 @@ function ChatWidget() {
   );
 
   const [theme, setTheme] = useState(() => {
-    // const saved = localStorage.getItem('chatTheme');
-    return 'default';
+    return 'nestle';
   });
 
   const [fontSize, setFontSize] = useState(() => {
@@ -107,7 +123,6 @@ function ChatWidget() {
     setShowWelcome(true);
     setIsFadingOut(false);
     setDisplayedText('');
-    localStorage.removeItem('userInfo');
   };
 
   const cleanupMediaStream = useCallback(() => {
@@ -285,7 +300,7 @@ function ChatWidget() {
 
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US'; // You can change this to your preferred language
+      recognitionRef.current.lang = 'en-US';
 
       recognitionRef.current.onresult = (event) => {
         let finalTranscript = '';
@@ -350,6 +365,7 @@ function ChatWidget() {
 
   useEffect(() => {
     document.title = "Nestlé ChatBot";
+    document.documentElement.setAttribute('data-theme', 'nestle');
   }, []);
 
   useEffect(() => {
@@ -391,11 +407,17 @@ function ChatWidget() {
   }, [isOpen, showWelcome, fullWelcomeText]);
 
   useEffect(() => {
-    requestAnimationFrame(() => {
+    const scrollTimeout = setTimeout(() => {
       if (bottomRef.current) {
-        bottomRef.current.scrollIntoView({ behavior: 'smooth' });
+        bottomRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
       }
-    });
+    }, 100);
+
+    return () => clearTimeout(scrollTimeout);
   }, [chatLog]);
 
   useEffect(() => {
@@ -533,13 +555,19 @@ function ChatWidget() {
           const rotateX = (-y / rect.height) * 15;
           const rotateY = (x / rect.width) * 15;
 
-          e.currentTarget.querySelector('img').style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+          const img = e.currentTarget.querySelector('img');
+          if (img) {
+            img.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+          }
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.querySelector('img').style.transform = 'rotateX(0deg) rotateY(0deg)';
+          const img = e.currentTarget.querySelector('img');
+          if (img) {
+            img.style.transform = 'rotateX(0deg) rotateY(0deg)';
+          }
         }}
       >
-        <img src={"/bot-icon.png"} alt="chat icon" className="chatbot-button"/>
+        <img src={images.botIcon} alt="chat icon" className="chatbot-button"/>
       </div>
 
       <AnimatePresence>
@@ -553,153 +581,153 @@ function ChatWidget() {
             layout
             layoutScroll
           >
-            <motion.div className={`chat-content ${showAvatarPopup ? 'chat-blurred' : ''}`} layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
-              <motion.div className="chat-window" layout>
-                <AnimatePresence mode="wait">
-                  {showWelcome ? (
-                    <motion.div
-                      key="welcome"
-                      className="welcome-container"
-                      initial={{ opacity: 1, y: 0, scale: 1 }}
-                      animate={isFadingOut ? { opacity: 0, y: -40, scale: 0.96 } : { opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -40, scale: 0.96 }}
-                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                    >
-                      <img src={userInfo.avatar} alt="avatar" className="welcome-avatar" />
-                      <div className="welcome-text">
-                        {displayedText.split('\n').map((line, idx) => (
-                          <div key={idx}>{line}</div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <div
-                      key="header"
-                      className="chat-fade-wrapper fade-chat"
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                    >
-                      <motion.div className="chat-header" layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
-                        <img
-                          src={userInfo.avatar}
-                          className="user-avatar"
-                          alt="avatar"
-                          onClick={() => setShowAvatarPopup(true)}
-                          title="Click to change avatar"
+            <div className={`chat-content ${showAvatarPopup ? 'chat-blurred' : ''}`}>
+              <AnimatePresence mode="wait">
+                {showWelcome ? (
+                  <motion.div
+                    key="welcome"
+                    className="welcome-container"
+                    initial={{ opacity: 1, y: 0, scale: 1 }}
+                    animate={isFadingOut ? { opacity: 0, y: -40, scale: 0.96 } : { opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -40, scale: 0.96 }}
+                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <img src={userInfo.avatar} alt="avatar" className="welcome-avatar" />
+                    <div className="welcome-text">
+                      {displayedText.split('\n').map((line, idx) => (
+                        <div key={idx}>{line}</div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <>
+                    {/* 聊天头部 - 移到外层，固定位置 */}
+                    <div className="chat-header">
+                      <img
+                        src={userInfo.avatar}
+                        className="user-avatar"
+                        alt="avatar"
+                        onClick={() => setShowAvatarPopup(true)}
+                        title="Click to change avatar"
+                      />
+                      {isEditingName ? (
+                        <input
+                          type="text"
+                          value={userInfo.name}
+                          onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
+                          onBlur={() => setIsEditingName(false)}
+                          onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
+                          className="username-input"
+                          autoFocus
                         />
-                        {isEditingName ? (
-                          <input
-                            type="text"
-                            value={userInfo.name}
-                            onChange={(e) => setUserInfo({ ...userInfo, name: e.target.value })}
-                            onBlur={() => setIsEditingName(false)}
-                            onKeyDown={(e) => e.key === 'Enter' && setIsEditingName(false)}
-                            className="username-input"
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            className="username"
-                            onDoubleClick={() => setIsEditingName(true)}
-                            title="Double click to edit"
-                          >
-                            {userInfo.name}
-                          </span>
-                        )}
-
-                        <button
-                          onClick={toggleWindowSize}
-                          className="window-size-button"
-                          title={getWindowSizeTitle()}
+                      ) : (
+                        <span
+                          className="username"
+                          onDoubleClick={() => setIsEditingName(true)}
+                          title="Double click to edit"
                         >
-                            <img src={"/window-change.png"} alt="Change Window Size" className="window-size-icon" />
-                        </button>
+                          {userInfo.name}
+                        </span>
+                      )}
 
-                        <MenuBar
-                          onClearChat={handleClearChat}
-                          onThemeChange={handleThemeChange}
-                          onFontSizeChange={handleFontSizeChange}
-                          currentTheme={theme}
-                          currentFontSize={fontSize}
+                      <button
+                        onClick={toggleWindowSize}
+                        className="window-size-button"
+                        title={getWindowSizeTitle()}
+                      >
+                          <img src={images.windowChange} alt="Change Window Size" className="window-size-icon" />
+                      </button>
+
+                      <MenuBar
+                        onClearChat={handleClearChat}
+                        onThemeChange={handleThemeChange}
+                        onFontSizeChange={handleFontSizeChange}
+                        currentTheme={theme}
+                        currentFontSize={fontSize}
+                      />
+
+                      <button onClick={toggleChat} className="chat-close-button">
+                        <img
+                          src={theme === 'dark' ? images.closeDark : images.close}
+                          alt="Close"
+                          className="chat-close-icon"
                         />
+                      </button>
+                    </div>
 
-                        <button onClick={toggleChat} className="chat-close-button">
-                          <img
-                            src={theme === 'dark' ? '/close-dark.png' : '/close.png'}
-                            alt="Close"
-                            className="chat-close-icon"
-                          />
-                        </button>
-                      </motion.div>
-
-                      <motion.div className="chat-body" layout transition={{ layout: { duration: 0.3, ease: "easeOut" } }}>
-                        {chatLog.map((msg, idx) => (
-                          <div key={idx} className={`chat-message-block ${msg.sender}`}>
-                            <div className="chat-message-row">
-                              <div className={`chat-bubble ${msg.isVoice ? 'voice-message' : ''} ${currentPlayingIndex === idx ? 'speaking' : ''}`}>
-                                <div className="chat-text">
-                                  {msg.text === 'Thinking...' ? (
-                                    <div className="breathing-indicator">Thinking...</div>
-                                  ) : (
-                                    <div className="markdown-body">
-                                      <ReactMarkdown
-                                        components={{
-                                          a: ({ node, ...props }) => (
-                                            <a {...props} target="_blank" rel="noopener noreferrer">
-                                              {props.children}
-                                            </a>
-                                          ),
-                                          img: ({ node, ...props }) => (
-                                            <img
-                                              {...props}
-                                              alt={props.alt}
-                                              style={{
-                                                display: 'block',
-                                                margin: '12px auto',
-                                                maxWidth: '80%',
-                                                height: 'auto',
-                                                borderRadius: '8px'
-                                              }}
-                                            />
-                                          )
-                                        }}
-                                      >
-                                        {msg.text}
-                                      </ReactMarkdown>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="chat-time-row">
-                                  <div className="chat-time">{msg.time}</div>
-                                  {msg.canSpeak && msg.sender === 'bot' && (
-                                    <button
-                                      onClick={() =>
-                                        currentPlayingIndex === idx ? stopSpeaking() : speakText(msg.text, idx)
-                                      }
-                                      className="voice-play-button"
-                                      title={currentPlayingIndex === idx ? "Stop speaking" : "Play voice"}
+                    {/* 聊天消息区域 - 这里是滚动容器 */}
+                    <div className="chat-body">
+                      {chatLog.map((msg, idx) => (
+                        <div key={idx} className={`chat-message-block ${msg.sender}`}>
+                          <div className="chat-message-row">
+                            <div className={`chat-bubble ${msg.isVoice ? 'voice-message' : ''} ${currentPlayingIndex === idx ? 'speaking' : ''}`}>
+                              <div className="chat-text">
+                                {msg.text === 'Thinking...' ? (
+                                  <div className="breathing-indicator">Thinking...</div>
+                                ) : (
+                                  <div className="markdown-body">
+                                    <ReactMarkdown
+                                      components={{
+                                        a: ({ node, ...props }) => (
+                                          <a {...props} target="_blank" rel="noopener noreferrer">
+                                            {props.children}
+                                          </a>
+                                        ),
+                                        img: ({ node, ...props }) => (
+                                          <img
+                                            {...props}
+                                            alt={props.alt}
+                                            style={{
+                                              display: 'block',
+                                              margin: '12px auto',
+                                              maxWidth: '80%',
+                                              height: 'auto',
+                                              borderRadius: '8px'
+                                            }}
+                                          />
+                                        )
+                                      }}
                                     >
-                                      <img
-                                        src={currentPlayingIndex === idx ? "/voice-stop.png" : "/play.png"}
-                                        alt={currentPlayingIndex === idx ? "Stop" : "Play"}
-                                        className="w-5 h-5 object-contain"
-                                      />
-                                    </button>
-                                  )}
-                                </div>
+                                      {msg.text}
+                                    </ReactMarkdown>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="chat-time-row">
+                                {msg.sender === 'user' && (
+                                    <div className="chat-time-user">{msg.time}</div>
+                                )}
+                                {msg.sender === 'bot' && (
+                                    <div className="chat-time-bot">{msg.time}</div>
+                                )}
+                                {msg.canSpeak && msg.sender === 'bot' && (
+                                  <button
+                                    onClick={() =>
+                                      currentPlayingIndex === idx ? stopSpeaking() : speakText(msg.text, idx)
+                                    }
+                                    className="voice-play-button"
+                                    title={currentPlayingIndex === idx ? "Stop speaking" : "Play voice"}
+                                  >
+                                    <img
+                                      src={currentPlayingIndex === idx ? images.voiceStop : images.play}
+                                      alt={currentPlayingIndex === idx ? "Stop" : "Play"}
+                                      className="w-5 h-5 object-contain"
+                                    />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
-                        ))}
-                        <div ref={bottomRef} />
-                      </motion.div>
+                        </div>
+                      ))}
+                      {/* 关键：bottomRef必须在chat-body内部的最底部 */}
+                      <div ref={bottomRef} style={{ height: '1px', flexShrink: 0 }} />
                     </div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
 
+              {/* 聊天输入区域 - 固定在底部 */}
               <div className="chat-footer">
                 {isListening && (
                   <div className="voice-status">
@@ -745,7 +773,7 @@ function ChatWidget() {
                     title={isListening ? "Stop listening" : "Start voice input"}
                   >
                     <img
-                      src={isListening ? "/voice-stop.png" : "/voice-start.png"}
+                      src={isListening ? images.voiceStop : images.voiceStart}
                       alt={isListening ? "Stop" : "Mic"}
                       className="w-5 h-5"
                     />
@@ -754,22 +782,21 @@ function ChatWidget() {
                     )}
                   </button>
 
-
                   <button onClick={sendMessage} disabled={isThinking || isListening} className="send-button-wrapper">
                     <img
-                      src="/send-icon.png"
+                      src={images.sendIcon}
                       alt="Send"
                       className={`send-icon ${isThinking || isListening ? 'hidden' : 'visible'}`}
                     />
                     <img
-                      src="/loading.gif"
+                      src={images.loading}
                       alt="Thinking"
                       className={`thinking-icon ${isThinking ? 'visible' : 'hidden'}`}
                     />
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {showAvatarPopup && (
               <div className="avatar-overlay-inside" onClick={() => setShowAvatarPopup(false)}>
