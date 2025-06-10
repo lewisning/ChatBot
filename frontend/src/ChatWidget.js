@@ -9,6 +9,7 @@ import avatar2 from './assets/avatars/avatar2.png';
 import avatar3 from './assets/avatars/avatar3.png';
 import avatar4 from './assets/avatars/avatar4.png';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const getImagePath = (imageName) => {
   const basePath = process.env.PUBLIC_URL || '';
@@ -604,7 +605,6 @@ function ChatWidget() {
                   </motion.div>
                 ) : (
                   <>
-                    {/* 聊天头部 - 移到外层，固定位置 */}
                     <div className="chat-header">
                       <img
                         src={userInfo.avatar}
@@ -658,7 +658,6 @@ function ChatWidget() {
                       </button>
                     </div>
 
-                    {/* 聊天消息区域 - 这里是滚动容器 */}
                     <div className="chat-body">
                       {chatLog.map((msg, idx) => (
                         <div key={idx} className={`chat-message-block ${msg.sender}`}>
@@ -670,7 +669,9 @@ function ChatWidget() {
                                 ) : (
                                   <div className="markdown-body">
                                     <ReactMarkdown
+                                      remarkPlugins={[remarkGfm]}
                                       components={{
+                                        // Existing components
                                         a: ({ node, ...props }) => (
                                           <a {...props} target="_blank" rel="noopener noreferrer">
                                             {props.children}
@@ -688,6 +689,39 @@ function ChatWidget() {
                                               borderRadius: '8px'
                                             }}
                                           />
+                                        ),
+                                        // Add table components for proper rendering
+                                        table: ({ node, ...props }) => (
+                                          <div className="table-container">
+                                            <table className="chat-table" {...props}>
+                                              {props.children}
+                                            </table>
+                                          </div>
+                                        ),
+                                        thead: ({ node, ...props }) => (
+                                          <thead className="chat-table-head" {...props}>
+                                            {props.children}
+                                          </thead>
+                                        ),
+                                        tbody: ({ node, ...props }) => (
+                                          <tbody className="chat-table-body" {...props}>
+                                            {props.children}
+                                          </tbody>
+                                        ),
+                                        tr: ({ node, ...props }) => (
+                                          <tr className="chat-table-row" {...props}>
+                                            {props.children}
+                                          </tr>
+                                        ),
+                                        th: ({ node, ...props }) => (
+                                          <th className="chat-table-header" {...props}>
+                                            {props.children}
+                                          </th>
+                                        ),
+                                        td: ({ node, ...props }) => (
+                                          <td className="chat-table-cell" {...props}>
+                                            {props.children}
+                                          </td>
                                         )
                                       }}
                                     >
@@ -723,14 +757,12 @@ function ChatWidget() {
                           </div>
                         </div>
                       ))}
-                      {/* 关键：bottomRef必须在chat-body内部的最底部 */}
                       <div ref={bottomRef} style={{ height: '1px', flexShrink: 0 }} />
                     </div>
                   </>
                 )}
               </AnimatePresence>
 
-              {/* 聊天输入区域 - 固定在底部 */}
               <div className="chat-footer">
                 {isListening && (
                   <div className="voice-status">
