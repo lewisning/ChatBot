@@ -278,6 +278,10 @@ const MenuBar = ({
                     <span className="tip-icon">📊</span>
                     <span className="tip-text">Try "How many products do you / does kit kat have?" for statistics</span>
                   </div>
+                  <div className="tip-item">
+                    <span className="tip-icon">📋</span>
+                    <span className="tip-text">Try "Show me the products in table format." for structured layout</span>
+                  </div>
                 </div>
               </div>
             </div>
